@@ -1,0 +1,31 @@
+
+create:
+    mswpipackage: yes
+
+    # unused yet...
+    zip: no
+    tarball: no
+    doxygen_doc: no
+    ezpackage: yes
+    pearpackage: no
+
+ezpublish:
+    # used in name of zips/tarballs
+    name: community_project
+
+version:
+    major: 2011
+    minor: 8
+    release: 0
+
+# Subversion properties
+git:
+    url: git://github.com/ezsystems/ezpublish.git
+
+files:
+    to_parse: []
+    to_exclude: []
+
+# other
+releasenr:
+    separator: .

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Definition for building as a 'Windows® Web Application Gallery' package eZP itself
+  @author G. Giunta
+  @copyright (c) 2011 eZ Systems
+  @license http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License v2
+  @see http://learn.iis.net/page.aspx/619/windows-web-application-gallery/
+-->
+<MSDeploy.iisApp>
+  <!-- iisapp path identifies the subdirectory in the ZIP file which
+       contains all of the application files. It is also the default path for
+       app installation on the server (customized by user at setup time) -->
+  <iisApp path="ezpublish" />
+
+  <!-- script that creates a db user and assigns to him the rights on the db
+       see http://learn.iis.net/page.aspx/642/database-notes-for-packaging-applications-for-use-with-the-web-application-gallery/
+  -->
+  <dbmysql path="install.sql" commandDelimiter="//" removeCommandDelimiter="true" />
+
+  <!-- set needed directories to writeable -->
+  <setAcl
+    path="ezpublish/var"
+    setAclAccess="Modify"
+    setAclUser="anonymousAuthenticationUser" />
+  <setAcl
+    path="ezpublish/settings/override"
+    setAclAccess="Modify"
+    setAclUser="anonymousAuthenticationUser" />
+  <setAcl
+    path="ezpublish/settings/siteaccess"
+    setAclAccess="Modify"
+    setAclUser="anonymousAuthenticationUser" />
+  <setAcl
+    path="ezpublish/extension"
+    setAclAccess="Modify"
+    setAclUser="anonymousAuthenticationUser" />
+</MSDeploy.iisApp>

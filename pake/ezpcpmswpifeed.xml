@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <webpiFile version="3.0.0.0" />
+  <title>WPI Feed From The eZ Publish Community Project Board</title>
+  <link href="http://share.ez.no/ez-on-mswebappgallery.../ezpcpmswpifeed.xml" />
+  <updated>{$update_date}</updated>
+  <author>
+    <name>The eZP CPB</name>
+    <uri>http://share.ez.no/blogs/community-project-board</uri>
+  </author>
+  <id>http://share.ez.no/ez-on-mswebappgallery.../ezpcpmswpifeed.xml</id>
+
+  <languages>
+    <language default="true">
+      <languageId>en</languageId>
+      <name resourceName="Lang_en_Name">English</name>
+    </language>
+  </languages>
+
+  <entry type="application">
+    <productId>eZPublishCP</productId>
+    <title>eZ Publish Community Project</title>
+    <!-- @todo find a more meaningful id -->
+    <id>http://share.ez.no/eZPublishCP</id>
+    <version>{$version}</version>
+    <updated>{$update_date}</updated>
+    <published>2011-07-04T21:36:00Z</published>
+    <summary resourceName="Entry_eZPublishCP_Summary">Guess what? ...</summary>
+    <longSummary resourceName="Entry_eZPublishCP_LongSummary">It's Christmas time! ...</longSummary>
+    <link href="http://share.ez.no/download-develop/downloads/" />
+
+    <!-- Display under PHPApps keyword subtab -->
+    <keywords>
+      <keywordId>ContentMgmt</keywordId>
+      <keywordId>PHP</keywordId>
+      <keywordId>MySQL</keywordId>
+    </keywords>
+
+    <images>
+      <icon>http://share.ez.no/ez-on-mswebappgallery.../favicon.ico</icon>
+    </images>
+
+    <author>
+      <name>The eZP CPB</name>
+      <uri>http://share.ez.no/blogs/community-project-board</uri>
+    </author>
+
+    <!--
+         Minimum set of requirements/dependencies in order to successfully install the application:
+         PHP, WDeploy, SQL Management Objects, MySql Connector and URL Rewrite.
+     -->
+    <!-- from http://forums.iis.net/p/1178288/1982327.aspx#1982327 -->
+    <dependency>
+      <and>
+        <dependency idref="PHP53App" />
+        <dependency idref="MySQLApp" />
+      </and>
+    </dependency>
+
+    <!-- Installer for an application should be Web Deploy package -->
+    <installers>
+      <installer>
+        <id>1</id>
+        <!-- List of languages this package is localized in -->
+        <languageId>en</languageId>
+        <languageId>ru</languageId>
+        <languageId>fr</languageId>
+        <languageId>de</languageId>
+        <languageId>it</languageId>
+        <!-- @todo add rest of languages -->
+
+        <helpLink>http://share.ez.no/forums/install-configuration</helpLink>
+
+        <installerFile>
+          <!-- size of the package in KBs -->
+          <fileSize>{$filesize}</fileSize>
+          <installerURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</installerURL>
+          <!--<displayURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</displayURL>-->
+          <!--<trackingURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</trackingURL>-->
+          <!-- SHA of the package file for signature verification -->
+          <sha1>{$sha1}</sha1>
+        </installerFile>
+
+        <msDeploy>
+          <!-- Default page is a start page -->
+          <startPage />
+        </msDeploy>
+
+      </installer>
+    </installers>
+
+    <productFamily resourceName="Applications">Applications</productFamily>
+
+  </entry>
+
+  <!-- copied from https://www.microsoft.com/web/webpi/3.0/webapplicationlist.xml -->
+  <dependencies>
+    <dependency id="PHP53App">
+      <and>
+        <dependency>
+          <or>
+            <dependency>
+              <and>
+                <dependency idref="IISForPHP" />
+                <dependency>
+                  <productId>PHP53</productId>
+                </dependency>
+                <!-- include wincache as dependency so we pull right version along (iis vs iis express)
+                     even though it's not technically a dependency (was related product ) -->
+                <dependency>
+                  <productId>WinCache53</productId>
+                </dependency>
+              </and>
+            </dependency>
+
+            <!-- PHP on IIS Express dependency -->
+            <dependency>
+              <and>
+                <dependency>
+                  <or>
+                    <dependency>
+                      <productId>WebMatrix</productId>
+                    </dependency>
+                    <dependency>
+                      <productId>WebMatrix_appdetect</productId>
+                    </dependency>
+                  </or>
+                </dependency>
+                <dependency>
+                  <productId>PHP53ForIISExpress</productId>
+                </dependency>
+              </and>
+            </dependency>
+          </or>
+        </dependency>
+        <dependency>
+          <or>
+            <dependency>
+              <productId>WDeployNOSMO</productId>
+            </dependency>
+            <dependency>
+              <productId>WDeploy_v2</productId>
+            </dependency>
+            <dependency>
+              <productId>WDeploy</productId>
+            </dependency>
+          </or>
+        </dependency>
+      </and>
+    </dependency>
+
+    <dependency id="MySQLApp">
+      <productId>MySQLConnector</productId>
+    </dependency>
+
+    <dependency id="IISForPHP">
+      <or>
+        <!--IIS 6.0-->
+        <dependency>
+          <and>
+            <!--IIS-->
+            <dependency>
+              <productId>IIS60</productId>
+            </dependency>
+            <!--FastCGI-->
+            <dependency>
+              <productId>FastCGIIIS6</productId>
+            </dependency>
+          </and>
+        </dependency>
+        <dependency>
+          <and>
+            <dependency>
+              <productId>StaticContent</productId>
+            </dependency>
+            <dependency>
+              <productId>DefaultDocument</productId>
+            </dependency>
+            <dependency>
+              <productId>DirectoryBrowse</productId>
+            </dependency>
+            <dependency>
+              <productId>HTTPErrors</productId>
+            </dependency>
+            <dependency>
+              <productId>HTTPLogging</productId>
+            </dependency>
+            <dependency>
+              <productId>LoggingTools</productId>
+            </dependency>
+            <dependency>
+              <productId>RequestMonitor</productId>
+            </dependency>
+            <dependency>
+              <productId>RequestFiltering</productId>
+            </dependency>
+            <dependency>
+              <productId>StaticContentCompression</productId>
+            </dependency>
+            <dependency>
+              <productId>IISManagementConsole</productId>
+            </dependency>
+            <dependency>
+              <productId>CGI</productId>
+            </dependency>
+            <!--URL Rewriter-->
+            <dependency>
+              <or>
+                <dependency>
+                  <productId>UrlRewrite2</productId>
+                </dependency>
+                <dependency>
+                  <productId>UrlRewrite</productId>
+                </dependency>
+                <dependency>
+                  <productId>UrlRewrite10</productId>
+                </dependency>
+                <dependency>
+                  <productId>UrlRewrite2Beta</productId>
+                </dependency>
+              </or>
+            </dependency>
+          </and>
+        </dependency>
+      </or>
+    </dependency>
+
+  </dependencies>
+
+</feed>
