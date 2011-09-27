@@ -1,0 +1,57 @@
+# global
+
+. decide std name of install dir
+
+. all pake tasks: download, build, ...
+  - replace version nr in install dir ? (nb: not for ms web app package)
+
+
+# Windows Web Application Gallery / Web Platform Installer package
+
+nb: doc begins at http://learn.iis.net/page.aspx/619/windows-web-application-gallery/
+
+. try to remove choice of pg from installer, while leaving mysql/mysqli
+  (or shall we just set mysqli as std ?)
+
+. q: does web installer does not test mysql credentials if 'use existing db' option chosen?
+  a: most likely yes, but at a later step than entering them
+  => shall we leave db config. setp in setup wizard visible?
+
+. q: when does web installer ask for db amin credentials?
+  a: only when user chooses 'create a new db'
+
+. hide wizard step about url access method? (defaulting to 'url')
+
+. pake tasks:
+  - get sources
+  - build
+
+. test if feed file can have many versions of the same product (is it useful at all?)
+
+. decide directory for downloadable files on share.ez.no
+
+. check if packages dir has to be set to writeable
+
+
+# pear package
+
+. pake tasks:
+  - get sources
+  - build
+  - generate package file
+  - update version nr in install dir in package file (?)
+  - create zip
+
+
+# misc
+
+. iis rewrite rules for static cache:
+http://learn.iis.net/page.aspx/761/provide-url-rewriting-functionality/
+
+. mail iis forums: how to test for presence of rewrite module? also how to test if mysqli is active? and is there a way to force install of mysql connector for .net?
+  OK (except for mysqli extension...)
+
+. ez feat reqs:
+  - add web.config-RECOMMENDED (resync with latest .htaccess)
+  - add commented rule for static cache
+  - add commented rule for cluster
