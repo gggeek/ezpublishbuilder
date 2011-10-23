@@ -78,7 +78,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 
         //$destdir = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['ezpublish']['name'];
         pake_echo( 'NB: init is a manual process for the moment' );
-        pake_echo( 'Please copy eZ Publish sources into directory: ' . eZPCPBuilder::getBuildDir( $opts ) );
+        pake_echo( 'Please copy eZ Publish sources into directory: ' . eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName() );
     }
 
     /*
@@ -174,7 +174,13 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 /// @todo remove this warning as soon as we implement some tasks
 function run_build( $task=null, $args=array(), $cliopts=array() )
 {
-     pake_echo( 'The build task is not doing anything at the moment. Just run "dist"' );
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+    if ( !is_dir( $rootpath ) )
+    {
+        throw new pakeException( "Missing eZ Publish source in: $rootpath" );
+    }
+    pake_echo( 'The build task is not doing anything at the moment. Just run the "dist" task' );
 }
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
