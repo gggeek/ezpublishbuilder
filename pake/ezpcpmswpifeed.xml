@@ -3,13 +3,13 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
   <webpiFile version="3.0.0.0" />
   <title>WPI Feed From The eZ Publish Community Project Board</title>
-  <link href="http://share.ez.no/ez-on-mswebappgallery.../ezpcpmswpifeed.xml" />
+  <link href="http://share.ez.no/ez-on-mswebplatform/ezpcpmswpifeed.xml" />
   <updated>{$update_date}</updated>
   <author>
     <name>The eZP CPB</name>
     <uri>http://share.ez.no/blogs/community-project-board</uri>
   </author>
-  <id>http://share.ez.no/ez-on-mswebappgallery.../ezpcpmswpifeed.xml</id>
+  <id>http://share.ez.no/ez-on-mswebplatform/ezpcpmswpifeed.xml</id>
 
   <languages>
     <language default="true">
@@ -38,7 +38,7 @@
     </keywords>
 
     <images>
-      <icon>http://share.ez.no/ez-on-mswebappgallery.../favicon.ico</icon>
+      <icon>http://share.ez.no/ez-on-mswebplatform/favicon.ico</icon>
     </images>
 
     <author>
@@ -75,9 +75,9 @@
         <installerFile>
           <!-- size of the package in KBs -->
           <fileSize>{$filesize}</fileSize>
-          <installerURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</installerURL>
-          <!--<displayURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</displayURL>-->
-          <!--<trackingURL>http://share.ez.no/ez-on-mswebappgallery.../{$filename}</trackingURL>-->
+          <installerURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</installerURL>
+          <!--<displayURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</displayURL>-->
+          <!--<trackingURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</trackingURL>-->
           <!-- SHA of the package file for signature verification -->
           <sha1>{$sha1}</sha1>
         </installerFile>
