@@ -1,0 +1,74 @@
+Introduction
+============
+
+1. What is the eZ Publish Builder?
+----------------------------------
+
+A set of php files and tools to "build" eZ Publish Community Projects tarballs and deliverables.
+It is based on the Pake tool.
+
+The build process consists of the following steps:
+- getting a copy of the latest version of the source code from the git repository
+- replacing some token strings inside some specific files (eg. version nr. and licensing info)
+- other stuff... (black magic)
+- creating tarballs in different formats
+
+The current state of evolution is:
+the tool can only be used to generate MS WPI packages from an already built eZP source tree
+
+2. License
+----------
+
+This software is licensed under the GNU General Public License v2.0 . The
+complete license agreement is included in the LICENSE file. For more information
+or questions please contact info@ez.no
+
+3. Requirements
+---------------
+
+- the php cli
+- Pake version 1.6.1 or later.
+  You can get it either from https://github.com/indeyets/pake/wiki
+  or as part of the extension itself, the first time you run the pakefile.php script
+- the Zeta Components php library (only for generating tarballs and html docs from rst)
+- command line tools: git
+
+4. Installing
+-------------
+
+Read the INSTALL file to get started and for usage instructions
+
+
+Directory structure
+===================
+
+Let's call ROOT_DIR the directory where you will be running the build script.::
+
+ROOT_DIR/
+ |___pakefile.php this is the script driving the build
+ |
+ |___build        a copy of the eZ sources will be downloaded here during the build
+ |
+ |___dist/        tarballs produced by the build will be made available here
+ |
+ `___pake/
+     |___doc/     more documentation, such as changelogs, todos and known bugs
+     |___src/     a complete copy of the pake tool
+     |___README   this file
+     |___INSTALL  installation instructions
+     |___LICENSE  license file
+     `___...      template files used so far to the generate the wpi package
+
+As you can see, we try to pollute as little as possible the ROOT_DIR: everything
+is neatly stowed away in the pake, build and dist subdirectories.
+
+
+FAQ
+===
+
+- Can a standalone copy of pake be used with the pakefile instead of the bundled one?
+    Yes: just use a different command line: ::
+    php pake.php build ...
+
+- Can I download a complete zip of the tool instead of doing the bootstrap?
+    Yes. Come back later for a list of urls to use ;-)
