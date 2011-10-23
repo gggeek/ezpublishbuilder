@@ -5,6 +5,8 @@
 . all pake tasks: download, build, ...
   - replace version nr in install dir ? (nb: not for ms web app package)
 
+. updgared bundled pake to rev. 1.6.3
+
 
 # Windows Web Application Gallery / Web Platform Installer package
 
@@ -52,6 +54,6 @@ http://learn.iis.net/page.aspx/761/provide-url-rewriting-functionality/
   OK (except for mysqli extension...)
 
 . ez feat reqs:
-  - add web.config-RECOMMENDED (resync with latest .htaccess)
+  - add web.config-RECOMMENDED (resync with latest .htaccess): #xxx
   - add commented rule for static cache
   - add commented rule for cluster
