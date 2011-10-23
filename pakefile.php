@@ -380,7 +380,7 @@ class eZPubBuilder
 {
     static $options = null;
     //static $defaultext = null;
-    static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable/pake';
+    static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
     static $version = '0.1';
     static $min_pake_version = '1.6.1';
     static $projname = 'ezpublish';
