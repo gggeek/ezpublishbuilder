@@ -1,7 +1,7 @@
 <?php
 /**
 * eZPublishBuilder pakefile:
-* a script to build & package eZPublish
+* a script to build & package the eZ Publish Community Project
 *
 * Needs the Pake tool to run: https://github.com/indeyets/pake/wiki
 * It can bootstrap, by downloading all required components from the web
@@ -50,15 +50,15 @@ if ( !function_exists( 'run_default' ) )
 
 function run_default()
 {
-    pake_echo ( "eZ Publish Builder ver." . eZPubBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: php pakefile.php --tasks to learn more about available tasks." );
+    pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: php pakefile.php --tasks to learn more about available tasks." );
 }
 
-/// @todo
+/// @todo show more properties
 function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
-    /*$opts = eZPubBuilder::getOpts( @$args[0] );
-    pake_echo ( 'Build dir: ' . eZPubBuilder::getBuildDir( $opts ) );
-    pake_echo ( 'Extension name: ' . $opts['ezpublish']['name'] );*/
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    pake_echo ( 'Build dir: ' . eZPCPBuilder::getBuildDir( $opts ) );
+    //pake_echo ( 'Extension name: ' . $opts['ezpublish']['name'] );*/
 }
 
 /**
@@ -71,14 +71,17 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
     $skip_init_fetch = @$cliopts['skip-init-fetch'] || $skip_init;
     $skip_init_clean = @$cliopts['skip-init-clean'] || $skip_init;
 
-    /*if ( ! $skip_init )
+    if ( ! $skip_init )
     {
-        $opts = eZPubBuilder::getOpts( @$args[0] );
-        pake_mkdirs( eZPubBuilder::getBuildDir( $opts ) );
+        $opts = eZPCPBuilder::getOpts( @$args[0] );
+        pake_mkdirs( eZPCPBuilder::getBuildDir( $opts ) );
 
-        $destdir = eZPubBuilder::getBuildDir( $opts ) . '/' . $opts['ezpublish']['name'];
+        //$destdir = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['ezpublish']['name'];
+        pake_echo( 'NB: init is a manual process for the moment' );
+        pake_echo( 'Please copy eZ Publish sources into directory: ' . eZPCPBuilder::getBuildDir( $opts ) );
     }
 
+    /*
     if ( ! $skip_init_fetch )
     {
         if ( @$opts['svn']['url'] != '' )
@@ -117,7 +120,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
         }
     }
 
-
+    /*
     // remove files
     if ( ! $skip_init_clean )
     {
@@ -168,19 +171,21 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 }
 
 /// We rely on the pake dependency system here to do real stuff
+/// @todo remove this warning as soon as we implement some tasks
 function run_build( $task=null, $args=array(), $cliopts=array() )
 {
+     pake_echo( 'The build task is not doing anything at the moment. Just run "dist"' );
 }
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPubBuilder::getOpts( @$args[0] );
-    pake_remove_dir( eZPubBuilder::getBuildDir( $opts ) );
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    pake_remove_dir( eZPCPBuilder::getBuildDir( $opts ) );
 }
 
 function run_dist( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPubBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
     if ( $opts['create']['mswpipackage'] /*|| $opts['create']['zip'] || $opts['create']['ezpackage'] || $opts['create']['pearpackage']*/ )
     {
         if ( !class_exists( 'ezcArchive' ) )
@@ -188,11 +193,11 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Missing Zeta Components: cannot generate tar file. Use the environment var PHP_CLASSPATH" );
         }
         pake_mkdirs( $opts['dist']['dir'] );
-        $rootpath = eZPubBuilder::getBuildDir( $opts ) . '/' . eZPubBuilder::getProjName();
+        $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
         if ( $opts['create']['mswpipackage'] )
         {
             // add extra files to build @todo move this to another phase/task...
-            $toppath = eZPubBuilder::getBuildDir( $opts );
+            $toppath = eZPCPBuilder::getBuildDir( $opts );
             $pakepath = dirname( __FILE__ ) . '/pake';
             pake_copy( $pakepath . '/install.sql', $toppath . '/install.sql' );
 
@@ -215,9 +220,9 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 
             // create zip
             /// @todo if name is empty do not add an extra hyphen
-            $filename = 'ezpublish-' . $opts[eZPubBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-wpi.zip';
+            $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-wpi.zip';
             $target = $opts['dist']['dir'] . '/' . $filename;
-            eZPubBuilder::archiveDir( $toppath, $target, ezcArchive::ZIP, true );
+            eZPCPBuilder::archiveDir( $toppath, $target, ezcArchive::ZIP, true );
 
             // update feed file
             $feedfile = 'ezpcpmswpifeed.xml';
@@ -238,13 +243,13 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
         /*if ( $opts['create']['tarball'] )
         {
             $target = $opts['dist']['dir'] . '/' . $opts['ezpublish']['name'] . '-' . $opts['version']['alias'] . '.' . $opts['version']['release'] . '.tar.gz';
-            eZPubBuilder::archiveDir( $rootpath, $target, ezcArchive::TAR );
+            eZPCPBuilder::archiveDir( $rootpath, $target, ezcArchive::TAR );
         }*/
 
         /*if ( $opts['create']['zip'] )
         {
             $target = $opts['dist']['dir'] . '/' . $opts['ezpublish']['name'] . '-' . $opts['version']['alias'] . '.' . $opts['version']['release'] . '.zip';
-            eZPubBuilder::archiveDir( $rootpath, $target, ezcArchive::ZIP );
+            eZPCPBuilder::archiveDir( $rootpath, $target, ezcArchive::ZIP );
         }*/
 
         /*if ( $opts['create']['ezpackage'] || $opts['create']['pearpackage'] )
@@ -290,7 +295,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
             pake_copy( $rootpath . '/' . $opts['files']['gnu_dir'] . '/LICENSE', $toppath . '/documents/LICENSE' );
             pake_copy( $rootpath . '/' . $opts['files']['gnu_dir'] . '/README', $toppath . '/documents/README' );
             $target = $opts['dist']['dir'] . '/' . $opts['ezpublish']['name'] . '_extension.ezpkg';
-            eZPubBuilder::archiveDir( $toppath, $target, ezcArchive::TAR, true );
+            eZPCPBuilder::archiveDir( $toppath, $target, ezcArchive::TAR, true );
 
             if ( $opts['create']['pearpackage'] )
             {
@@ -304,7 +309,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 
 function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPubBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
     pake_remove_dir( $opts['dist']['dir'] );
 }
 
@@ -318,14 +323,14 @@ function run_clean_all( $task=null, $args=array(), $cliopts=array() )
 
 function run_tool_upgrade_check( $task=null, $args=array(), $cliopts=array() )
 {
-    $latest = eZPubBuilder::latestVersion();
+    $latest = eZPCPBuilder::latestVersion();
     if ( $latest == false )
     {
         pake_echo ( "Cannot determine latest version available. Please check that you can connect to the internet" );
     }
     else
     {
-        $current = eZPubBuilder::$version;
+        $current = eZPCPBuilder::$version;
         $check = version_compare( $latest, $current );
         if ( $check == -1 )
         {
@@ -350,7 +355,7 @@ function run_tool_upgrade_check( $task=null, $args=array(), $cliopts=array() )
 /// @todo add a backup enable/disable option
 function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
 {
-    $latest = eZPubBuilder::latestVersion( true );
+    $latest = eZPCPBuilder::latestVersion( true );
     if ( $latest == false )
     {
         pake_echo ( "Cannot download latest version available. Please check that you can connect to the internet" );
@@ -359,14 +364,14 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
     {
         // 1st get the whole 'pake' dir contents, making a backup copy
         $tmpzipfile = tempnam( "tmp", "zip" );
-        $zipfile = dirname( __FILE__ ) . '/pake/pakedir-' . eZPubBuilder::$version . '.zip';
-        eZPubBuilder::archiveDir( dirname( __FILE__ ) . '/pake', $tmpzipfile, ezcArchive::ZIP );
+        $zipfile = dirname( __FILE__ ) . '/pake/pakedir-' . eZPCPBuilder::$version . '.zip';
+        eZPCPBuilder::archiveDir( dirname( __FILE__ ) . '/pake', $tmpzipfile, ezcArchive::ZIP );
         @unlink( $zipfile ); // otherwise pake_rename might complain
         pake_rename( $tmpzipfile, $zipfile );
-        eZPubBuilder::bootstrap();
+        eZPCPBuilder::bootstrap();
 
         // then update the pakefile itself, making a backup copy
-        pake_copy( __FILE__, dirname( __FILE__ ) . '/pake/pakefile-' . eZPubBuilder::$version . '.php', array( 'override' => true ) );
+        pake_copy( __FILE__, dirname( __FILE__ ) . '/pake/pakefile-' . eZPCPBuilder::$version . '.php', array( 'override' => true ) );
         /// @todo test: does this work on windows?
         file_put_contents( __FILE__, $latest );
     }
@@ -376,7 +381,7 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
 * Class implementing the core logic for our pake tasks
 * @todo separate in another file?
 */
-class eZPubBuilder
+class eZPCPBuilder
 {
     static $options = null;
     //static $defaultext = null;
@@ -760,12 +765,12 @@ if ( !function_exists( 'pake_desc' ) )
             echo "\n";
         } while( true );
 
-        eZPubBuilder::bootstrap();
+        eZPCPBuilder::bootstrap();
 
         echo
             "Succesfully downloaded sources\n" .
-            "  Next steps: copy pake/options-sample.yaml to pake/options-ezpublish.yaml, edit it\n" .
-            "  then run again this script.\n".
+            "  Next steps: edit file pake/options-ezpublish.yaml to suit your needs\n" .
+            "  (eg: change version nr.), then run again this script.\n".
             "  Use the environment var PHP_CLASSPATH for proper class autoloading of eg. Zeta Components";
         exit( 0 );
 
@@ -778,6 +783,9 @@ else
 // force ezc autoloading (including pake.php will have set include path from env var PHP_CLASSPATH)
 register_ezc_autoload();
 
+/// @todo test if the hack below is necessary for ezpublishbuilder or if we can remove the if.
+///       After all, we never shipped a release with a non-versioned pake...
+
 // this is unfortunately a necessary hack: version 0.1 of this extension
 // shipped with a faulty pake_version, so we cannot check for required version
 // when using the bundled pake.
@@ -787,7 +795,7 @@ register_ezc_autoload();
 // (it will only be when the user does two consecutive updates)
 if ( !( isset( $GLOBALS['internal_pake'] ) && $GLOBALS['internal_pake'] ) )
 {
-    pake_require_version( eZPubBuilder::$min_pake_version );
+    pake_require_version( eZPCPBuilder::$min_pake_version );
 }
 
 pake_desc( 'Shows help message' );
@@ -799,13 +807,14 @@ pake_task( 'show-properties' );
 pake_desc( 'Downloads sources from git and removes unwanted files' );
 pake_task( 'init' );
 
+/// @todo ...
 pake_desc( 'Builds the cms. Options: --skip-init' );
-pake_task( 'build', 'init', '...' );
+pake_task( 'build', 'init' );
 
 pake_desc( 'Removes the build/ directory' );
 pake_task( 'clean' );
 
-pake_desc( 'Creates a tarball of the build' );
+pake_desc( 'Creates tarball(s) of the build' );
 pake_task( 'dist' );
 
 pake_desc( 'Removes the dist/ directory' );
