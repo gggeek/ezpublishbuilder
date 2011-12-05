@@ -74,7 +74,7 @@
 
         <installerFile>
           <!-- size of the package in KBs -->
-          <fileSize>{$filesize}</fileSize>
+          <fileSize>{$filesizeKB}</fileSize>
           <installerURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</installerURL>
           <!--<displayURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</displayURL>-->
           <!--<trackingURL>http://share.ez.no/ez-on-mswebplatform/{$filename}</trackingURL>-->

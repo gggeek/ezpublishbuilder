@@ -241,7 +241,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
                 '$version' => $opts['version']['alias'],
                 '$sha1' => sha1_file( $target ),
                 '$filename' => $filename,
-                '$filesize' => filesize( $target )
+                '$filesizeKB' => round( filesize( $target ) / 1024 )
             ) );
 
         }
