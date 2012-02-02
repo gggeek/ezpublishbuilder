@@ -10,6 +10,11 @@
 . updgared bundled pake to rev. 1.6.3
 
 
+# build task
+
+. when running the build, after generating changelog, task should wait for user input before going on. Otoh when running simply generate-changelog, it should exit with a different msg
+
+
 # Windows Web Application Gallery / Web Platform Installer package
 
 nb: doc begins at http://learn.iis.net/page.aspx/619/windows-web-application-gallery/
