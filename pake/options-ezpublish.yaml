@@ -32,19 +32,20 @@ git:
     # in case a different branch is to be used for the build
     #branch:
 
-# "ci" git repo, used by the eZP "internal" build process
+# "ci" git repo, used by the eZP "official" build process
 ci-repo:
     git-url: https://github.com/ezsystems/ci.git
     git-path: ezpublish/branches/github
     git-branch: community-build
+
     # if a local copy of this repo is onboard, set its value here.
     # otherwise, a copy will be donloaded in the build directory
-    local-path:
+    local-path: d:\htdocs\ezp\github\ci\
 
 # unused yet...
-files:
-    to_parse: []
-    to_exclude: []
+#files:
+#    to_parse: []
+#    to_exclude: []
 
 # other
 

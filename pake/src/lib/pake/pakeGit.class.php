@@ -82,8 +82,8 @@ class pakeGit
             $cmd = '(cd '.escapeshellarg($this->repository_path).' && git '.$command.')';
         } else {
             $cmd = 'git';
-            $cmd .= ' '.escapeshellarg('--git-dir='.$this->repository_path.'/.git');
-            $cmd .= ' '.escapeshellarg('--work-tree='.$this->repository_path);
+            $cmd .= ' --git-dir='.escapeshellarg($this->repository_path.'/.git');
+            $cmd .= ' --work-tree='.escapeshellarg($this->repository_path);
             $cmd .= ' '.$command;
         }
 

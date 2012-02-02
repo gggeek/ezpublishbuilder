@@ -164,7 +164,7 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
 
 /**
 * Generates a changelog file based on git commit logs.
-* The generated file should be reviewed/edited by hand, then committed with the task "commit-changelog".
+* The generated file should be reviewed/edited by hand, then committed with the task "update-ci-repo".
 */
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
@@ -235,8 +235,27 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
 }
 
-function run_commit_changelog( $task=null, $args=array(), $cliopts=array() )
+function run_wait( $task=null, $args=array(), $cliopts=array() )
 {
+    $cont = pake_select_input( "Please review (edit by hand) the changelog file.\nOnce you are done, press '1' to continue the build task. Otherwise press '2' to exit.", array( 'Continue', 'Stop' ), 1 );
+    if ( $cont != 'Y' )
+    {
+        exit;
+    }
+}
+
+/**
+* This tasks updates files in the "ci" git repository.
+* The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
+* It holds, amongs other things, patch files that are applied in order to build the
+* CP version instead of the Enterprise one
+*/
+function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
+{
+    // needed on windows - unless a recent git version is used (1.7.9 is ok)
+    // and a patched pakeGit class is used ( > pake 1.6.3)
+    pakeGit::$needs_work_tree_workaround = true;
+
     $opts = eZPCPBuilder::getOpts( @$args[0] );
     $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
 
@@ -279,9 +298,10 @@ function run_commit_changelog( $task=null, $args=array(), $cliopts=array() )
 
     $files = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
     pake_replace_regexp( $files, $opts['dist']['dir'], array(
-        '/$\+ +const +VERSION_MAJOR += +\d/;' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
-        '/$\+ +const +VERSION_MINOR += +\d/;' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
+        '/^\+ +const +VERSION_MAJOR += +\d/' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
+        '/^\+ +const +VERSION_MINOR += +\d/' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
+    $repo->add( array( $cipath . '/patches/0002_2011_11_patch_fix_version.diff' ) );
 
     // 3. add new changelog file
     /// @todo calculate sequence nr.
@@ -291,8 +311,16 @@ function run_commit_changelog( $task=null, $args=array(), $cliopts=array() )
     $repo->add( array( $newdifffile ) );
 
     // 4. update ezpublish-gpl.properties
+    $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->in( $cipath . '/properties' );
+    pake_replace_regexp( $files, $opts['dist']['dir'], array(
+        '/^ezp\.cp\.version\.major += +\d+/' => "ezp.cp.version.major = {$opts['version']['major']};",
+        '/^ezp\.cp\.version\.minor += +\d+/' => "ezp.cp.version.minor = {$opts['version']['minor']};"
+    ) );
+    $repo->add( array(  $cipath . '/properties/ezpublish-gpl.properties\'' ) );
 
-
+    $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
+    // missing command in pakegit
+    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git push', $ouput, $return );
 }
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
@@ -849,97 +877,23 @@ function pake_replace_regexp($arg, $target_dir, $regexps, $limit=-1)
 
 }
 
-if ( !function_exists( 'pake_antpattern' ) )
+if ( !function_exists( 'pake_longdesc' ) )
 {
-
-/**
-* Mimics ant pattern matching.
-* Waiting for pake 1.6.2 or later to provide this natively
-* @see http://ant.apache.org/manual/dirtasks.html#patterns
-* @todo more complete testing
-* @bug looking for " d i r / * * / " will return subdirs but not dir itself
-*/
-function pake_antpattern( $files, $rootdir )
-{
-    $results = array();
-    foreach( $files as $file )
+    $GLOBALS['pake_longdesc'] = array();
+    /**
+     * Allows the user to define a long description for tasks, besides what is
+     * done via pake_desk.
+     * @param, string $desc If $description is empty, phpdoc for the function is used
+     */
+    function pake_longdesc( $task, $desc='' )
     {
-        //echo " Beginning with $file in dir $rootdir\n";
-
-        // safety measure: try to avoid multiple scans
-        $file = str_replace( '/**/**/', '/**/', $file );
-
-        $type = 'any';
-        // if user set '/ 'as last char: we look for directories only
-        if ( substr( $file, -1 ) == '/' )
+        $func = 'run_' . str_replace( '-', '_', $task );
+        if ( $desc == '' && function_exists( $func ) )
         {
-            $type = 'dir';
-            $file = substr( $file, 0, -1 );
+            $func = new ReflectionFunction( $func );
+            $desc = $func->getDocComment();
         }
-        // managing 'any subdir or file' as last item: trick!
-        if ( strlen( $file ) >= 3 && substr( $file, -3 ) == '/**' )
-        {
-            $file .= '/*';
-        }
-
-        $dir = dirname( $file );
-        $file = basename( $file );
-        if ( strpos( $dir, '**' ) !== false )
-        {
-            $split = explode( '/', $dir );
-            $path = '';
-            foreach( $split as $i => $part )
-            {
-                if ( $part != '**' )
-                {
-                    $path .= "/$part";
-                }
-                else
-                {
-                    //echo "  Looking for subdirs in dir $rootdir{$path}\n";
-                    $newfile = implode( '/', array_slice( $split, $i + 1 ) ) . "/$file" . ( $type == 'dir'? '/' : '' );
-                    $dirs = pakeFinder::type( 'dir' )->in( $rootdir . $path );
-                    // also cater for the case '** matches 0 subdirs'
-                    $dirs[] = $rootdir . $path;
-                    foreach( $dirs as $newdir )
-                    {
-                        //echo "  Iterating in $newdir, looking for $newfile\n";
-                        $found = pake_antpattern( array( $newfile ), $newdir );
-                        $results = array_merge( $results, $found );
-                    }
-                    break;
-                }
-            }
-        }
-        else
-        {
-            //echo "  Looking for $type $file in dir $rootdir/$dir\n";
-            $found = pakeFinder::type( $type )->name( $file )->maxdepth( 0 )->in( $rootdir . '/' . $dir );
-            //echo "  Found: " . count( $found ) . "\n";
-            $results = array_merge( $results, $found );
-        }
-    }
-    return $results;
-}
-
-    if ( !function_exists( 'pake_longdesc' ) )
-    {
-        $GLOBALS['pake_longdesc'] = array();
-        /**
-        * Allows the user to define a long description for tasks, besides what is
-        * done via pake_desk.
-        * @param, string $desc If $description is empty, phpdoc for the function is used
-        */
-        function pake_longdesc( $task, $desc='' )
-        {
-            $func = 'run_' . str_replace( '-', '_', $task );
-            if ( $desc == '' && function_exists( $func ) )
-            {
-                $func = new ReflectionFunction( $func );
-                $desc = $func->getDocComment();
-            }
-            $GLOBALS['pake_longdesc'][$task] = $desc;
-        }
+        $GLOBALS['pake_longdesc'][$task] = $desc;
     }
 }
 
@@ -1026,12 +980,17 @@ pake_task( 'show-properties' );
 pake_desc( 'Downloads sources from git and removes unwanted files' );
 pake_task( 'init' );
 
-/// @todo ...
 pake_desc( 'Builds the cms. Options: --skip-init' );
-pake_task( 'build', 'init', 'generate-changelog' );
+pake_task( 'build', 'init', 'generate-changelog', 'wait', 'update-ci-repo' );
 
-pake_desc( 'Generates a changelog file from GIT logs' );
+pake_desc( 'Generates a changelog file from git logs' );
 pake_task( 'generate-changelog' );
+
+pake_desc( 'Dummy task. Asks a question to the user and waits for an answer...' );
+pake_task( 'wait' );
+
+pake_desc( 'Commits changelog to the "ci" git repo and updates in there other files holding version-related infos' );
+pake_task( 'update-ci-repo' );
 
 pake_desc( 'Removes the build/ directory' );
 pake_task( 'clean' );
@@ -1047,45 +1006,6 @@ pake_task( 'all', 'build', 'dist' );
 
 pake_desc( 'Removes the build/ and dist/ directories' );
 pake_task( 'clean-all', 'clean', 'dist-clean' );
-
-
-/*
-pake_desc( 'Updates ezinfo.php and extension.xml with correct version numbers and licensing info' );
-pake_task( 'update-ezinfo' );
-
-pake_desc( 'Update license headers in source code files (php, js, css)' );
-pake_task( 'update-license-headers' );
-
-pake_desc( 'Updates extra files with correct version numbers and licensing info' );
-pake_task( 'update-extra-files' );
-
-pake_desc( 'Generates the documentation of the extension, if created in RST format in the doc/ folder, plus optionally API docs via doxygen. Options: --doxygen=/path/to/doxygen' );
-pake_task( 'generate-documentation' );
-
-//pake_desc( 'Checks PHP code coding standard, requires PHPCodeSniffer' );
-//pake_task( 'coding-standards-check' );
-
-pake_desc( 'Generates a share/filelist.md5 file with md5 checksums of all source files' );
-pake_task( 'generate-md5sums' );
-
-pake_desc( 'Checks if a schema.sql / cleandata.sql is available for all supported databases' );
-pake_task( 'check-sql-files' );
-
-pake_desc( 'Checks for presence of LICENSE and README files' );
-pake_task( 'check-gnu-files' );
-
-pake_desc( 'Generates an XML filelist definition for packaged extensions' );
-pake_task( 'generate-package-filelist' );
-
-pake_desc( 'Updates information in package.xml file used by packaged extensions' );
-pake_task( 'update-package-xml' );
-
-pake_desc( 'Build dependent extensions' );
-pake_task( 'build-dependencies' );
-
-pake_desc( 'Creates an ezpackage tarball.' );
-pake_task( 'generate-package-tarball', 'update-package-xml', 'generate-package-filelist' );
-*/
 
 pake_desc( 'Checks if a newer version of the tool is available online' );
 pake_task( 'tool-upgrade-check' );
