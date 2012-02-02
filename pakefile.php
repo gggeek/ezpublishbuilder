@@ -318,15 +318,15 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
             // add extra files to build @todo move this to another phase/task...
             $toppath = eZPCPBuilder::getBuildDir( $opts );
             $pakepath = dirname( __FILE__ ) . '/pake';
-            pake_copy( $pakepath . '/install.sql', $toppath . '/install.sql' );
+            pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql' );
 
             /// @todo: if the $rootpath is different from "ezpublish", the manifest and parameters files need to be altered accordingly
             /// after copying them to their location
-            pake_copy( $pakepath . '/manifest.xml', $toppath . '/manifest.xml' );
-            pake_copy( $pakepath . '/parameters.xml', $toppath . '/parameters.xml' );
+            pake_copy( $pakepath . '/wpifiles/manifest.xml', $toppath . '/manifest.xml' );
+            pake_copy( $pakepath . '/wpifiles/parameters.xml', $toppath . '/parameters.xml' );
 
             // this one is overwritten
-            pake_copy( $pakepath . '/kickstart.ini', $rootpath . '/kickstart.ini', array( 'override' => true ) );
+            pake_copy( $pakepath . '/wpifiles/kickstart.ini', $rootpath . '/kickstart.ini', array( 'override' => true ) );
 
             if ( is_file( $rootpath . '/web.config-RECOMMENDED' ) )
             {
@@ -334,7 +334,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
             }
             else if ( !is_file( $rootpath . '/web.config' ) )
             {
-                pake_copy( $pakepath . '/web.config', $rootpath . '/web.config' );
+                pake_copy( $pakepath . '/wpifiles/web.config', $rootpath . '/web.config' );
             }
 
             // create zip
@@ -345,7 +345,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 
             // update feed file
             $feedfile = 'ezpcpmswpifeed.xml';
-            pake_copy( $pakepath . '/' . $feedfile, $opts['dist']['dir'] . '/' . $feedfile );
+            pake_copy( $pakepath . '/wpifiles/' . $feedfile, $opts['dist']['dir'] . '/' . $feedfile );
             $files = pakeFinder::type( 'file' )->name( $feedfile )->maxdepth( 0 )->in( $opts['dist']['dir'] );
             //pake_replace_regexp( $files, $opts['dist']['dir'], array(
             //) );
