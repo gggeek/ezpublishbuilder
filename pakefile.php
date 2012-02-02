@@ -61,7 +61,7 @@ function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
-* Downloads eZP from its source repository, removes files not to be built
+* Downloads eZP from its source repository, ...
 * @todo add a dependency on a check-updates task that updates script itself?
 */
 function run_init( $task=null, $args=array(), $cliopts=array() )
@@ -97,7 +97,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
         }
 
         /*
-        // on windows, allot tortoisegit to remove locks it holds on .git files, or removal will fail
+        // on windows, allow tortoisegit to remove locks it holds on .git files, or removal will fail
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
         {
                 sleep( 3 );
@@ -164,7 +164,7 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
 
 /**
 * Generates a changelog file based on git commit logs.
-* The generated file should be reviewed/edited by ahnd, tehn committed with the task commit-changelog
+* The generated file should be reviewed/edited by hand, then committed with the task "commit-changelog".
 */
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
@@ -173,7 +173,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
     if ( isset( $opts['version']['previous']['git-revision'] ) )
     {
-        /// @todo check if given hash exists in git repo
+        /// @todo check if given revision exists in git repo
 
         // pake's own git class does not allow usage of 'git log' yet
         exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $opts['version']['previous']['git-revision'] ) . "..HEAD", $changelogArray, $ok );
@@ -203,7 +203,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
     }
     else
     {
-        pake_echo( 'The configuration file doe not have the git tag of last version. Generating an empty changelog file' );
+        pake_echo( 'The configuration file does not have the git tag of last version. Generating an empty changelog file' );
 
         $bugfixesMatches = array(array());
         $enhancementsMatches = array(array());
@@ -239,12 +239,11 @@ function run_commit_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
     $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
-    //$origdir = getcwd();
 
     // generate changelog diff
     $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
     $difffile = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
-    exec( 'cd' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
+    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
     /// @todo test for errors
 
     // start work on the ci repo:
@@ -795,22 +794,23 @@ class eZPCPBuilder
     /// generate name for changelog file. We assume 2011.1 .. 2011.12 naming convention
     static function changelogFilename( $opts )
     {
-        $filename = 'CHANGELOG-' . $opts['version']['alias'] . '-to-';
+        $filename = 'CHANGELOG-';
         if ( isset( $opts['version']['previous']['name'] ) )
         {
-            $filename .=  $opts['version']['previous']['name'] . '.txt';
+            $filename .=  $opts['version']['previous']['name'];
         }
         else
         {
             if ( $opts['version']['minor'] > 1 )
             {
-                $filename .=  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 ) . '.txt';
+                $filename .=  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 );
             }
             else
             {
-                $filename .=  ( $opts['version']['major'] - 1 ) . '.12.txt';
+                $filename .=  ( $opts['version']['major'] - 1 ) . '.12';
             }
         }
+         $filename .= '-to-' . $opts['version']['alias'] . '.txt';
         return $filename;
     }
 }
