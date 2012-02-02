@@ -7,9 +7,9 @@
 * It can bootstrap, by downloading all required components from the web
 *
 * @author    G. Giunta
-* @copyright (C) G. Giunta 2011
+* @copyright (C) G. Giunta 2011-2012
 * @license   code licensed under the GNU GPL 2.0: see README file
-* @version   SVN: $Id$
+* @version   $Id$
 */
 
 // too smart for your own good: allow this script to be gotten off web servers in source form
@@ -58,7 +58,6 @@ function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
     pake_echo ( 'Build dir: ' . eZPCPBuilder::getBuildDir( $opts ) );
-    //pake_echo ( 'Extension name: ' . $opts['ezpublish']['name'] );*/
 }
 
 /**
@@ -69,55 +68,40 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 {
     $skip_init = @$cliopts['skip-init'];
     $skip_init_fetch = @$cliopts['skip-init-fetch'] || $skip_init;
-    $skip_init_clean = @$cliopts['skip-init-clean'] || $skip_init;
+    //$skip_init_clean = @$cliopts['skip-init-clean'] || $skip_init;
 
     if ( ! $skip_init )
     {
         $opts = eZPCPBuilder::getOpts( @$args[0] );
         pake_mkdirs( eZPCPBuilder::getBuildDir( $opts ) );
 
-        //$destdir = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['ezpublish']['name'];
-        pake_echo( 'NB: init is a manual process for the moment' );
-        pake_echo( 'Please copy eZ Publish sources into directory: ' . eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName() );
+        $destdir = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
     }
 
-    /*
     if ( ! $skip_init_fetch )
     {
-        if ( @$opts['svn']['url'] != '' )
+        pake_echo( 'Fetching code from GIT repository' );
+
+        if ( @$opts['git']['url'] == '' )
         {
-            pake_echo( 'Fetching code from SVN repository' );
-            pakeSubversion::checkout( $opts['svn']['url'], $destdir );
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
-            {
+            throw new pakeException( "Missing source repo option git:url in config file" );
+        }
+        /// @todo to make successive builds faster, if repo exists already just
+        ///       update it
+        pakeGit::clone_repository( $opts['git']['url'], $destdir );
+
+        if ( @$opts['git']['branch'] != '' )
+        {
+            pake_echo( "Using GIT branch {$opts['git']['branch']}" );
+            pakeGit::checkout_repo( $destdir, $opts['git']['branch'] );
+        }
+
+        /*
+        // on windows, allot tortoisegit to remove locks it holds on .git files, or removal will fail
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
+        {
                 sleep( 3 );
-            }
-        }
-        else if ( @$opts['git']['url'] != '' )
-        {
-            pake_echo( 'Fetching code from GIT repository' );
-            pakeGit::clone_repository( $opts['git']['url'], $destdir );
-            if ( @$opts['git']['branch'] != '' )
-            {
-                /// @todo test checking out a specific branch
-                pakeGit::checkout_repo( $destdir, $opts['git']['branch'] );
-            }
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
-            {
-                sleep( 3 );
-            }
-        }
-        else if ( @$opts['file']['url'] != '' )
-        {
-            pake_echo( 'Fetching code from local repository' );
-            /// @todo (!important) exclude stuff we know we're going to delete immediately afterwards
-            $files = pakeFinder::type( 'any' )->in( $opts['file']['url'] );
-            pake_mirror( $files, $opts['file']['url'], $destdir );
-        }
-        else
-        {
-            throw new pakeException( "Missing source repo option: either svn:url, git:url or file:url" );
-        }
+        }*/
     }
 
     /*
@@ -170,17 +154,146 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
     }*/
 }
 
-/// We rely on the pake dependency system here to do real stuff
-/// @todo remove this warning as soon as we implement some tasks
+/**
+* We rely on the pake dependency system to do the real stuff
+* (run pake -P to see tasks included in this one)
+*/
 function run_build( $task=null, $args=array(), $cliopts=array() )
+{
+}
+
+/**
+* Generates a changelog file based on git commit logs.
+* The generated file should be reviewed/edited by ahnd, tehn committed with the task commit-changelog
+*/
+function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
     $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
-    if ( !is_dir( $rootpath ) )
+
+    if ( isset( $opts['version']['previous']['git-revision'] ) )
     {
-        throw new pakeException( "Missing eZ Publish source in: $rootpath" );
+        /// @todo check if given hash exists in git repo
+
+        // pake's own git class does not allow usage of 'git log' yet
+        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $opts['version']['previous']['git-revision'] ) . "..HEAD", $changelogArray, $ok );
+        /// @todo test for git errors
+
+        $changelogArray = array_map( 'trim', $changelogArray );
+        $changelogText = implode( "\n", $changelogArray );
+
+        // extract known wit issues
+        preg_match_all( "/^[- ]?Fix(?:ed)?(?: bug|for ticket)? #0?([0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
+        preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement)? #0?([0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );
+        /// @todo extract pull requests
+        preg_match_all( "/^Merge pull request #0?([0-9]+):? (.*)$/mi", $changelogText, $pullreqsMatches, PREG_PATTERN_ORDER );
+
+        // remove all bugfixes & enhancements from the changelog to get unmatched items
+        $unmatchedEntries = array_map(
+            function( $item )
+            {
+                return ( substr( $item, 0, 2 ) != "- " ? "- $item" : $item );
+            },
+            array_diff(
+                $changelogArray,
+                $bugfixesMatches[0],
+                $enhancementsMatches[0],
+                $pullreqsMatches[0] )
+        );
     }
-    pake_echo( 'The build task is not doing anything at the moment. Just run the "dist" task' );
+    else
+    {
+        pake_echo( 'The configuration file doe not have the git tag of last version. Generating an empty changelog file' );
+
+        $bugfixesMatches = array(array());
+        $enhancementsMatches = array(array());
+        $pullreqsMatches = array(array());
+        $unmatchedEntries = array();
+    }
+
+    /// @todo handle reverts ? Or process manually ?
+
+    $out = "Bugfixes\n========\n";
+    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $bugfixesMatches ) );
+    $out .= "\n\n";
+
+    $out .= "Enhancements\n============\n";
+    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $enhancementsMatches ) );
+    $out .= "\n\n";
+
+    $out .= "Pull requests\n=============\n";
+    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $pullreqsMatches ) );
+    $out .= "\n\n";
+
+    $out .= "Miscellaneous\n=============\n";
+    $out .= join( "\n", $unmatchedEntries );
+
+    $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $filename = eZPCPBuilder::changelogFilename( $opts );
+    pake_mkdirs( $changelogdir );
+    pake_write_file( $changelogdir . '/' . $filename , $out, true );
+
+}
+
+function run_commit_changelog( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+    //$origdir = getcwd();
+
+    // generate changelog diff
+    $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $difffile = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
+    exec( 'cd' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
+    /// @todo test for errors
+
+    // start work on the ci repo:
+
+    // 1. update/clone it
+    if ( $opts['ci-repo']['local-path'] != '' )
+    {
+        $cipath = $opts['ci-repo']['local-path'];
+        $repo = new pakeGit( $cipath );
+        /// @todo test that we're on the good git
+        $repo->pull();
+    }
+    else
+    {
+        $cipath = eZPCPBuilder::getBuildDir( $opts ) . '/ci-repo';
+        /// @todo do we always need to pass in username/password here? test if using ssh url + ssh config it is doable without
+        $repo = pakeGit::clone_repository( $opts['ci-repo']['git-url'], $cipath );
+    }
+    if ( $opts['ci-repo']['git-branch'] != '' )
+    {
+        $repo->checkout( $opts['ci-repo']['git-branch'] );
+    }
+
+    if ( $opts['ci-repo']['git-path'] != '' )
+    {
+        $cipath .= '/' . $opts['ci-repo']['git-path'];
+    }
+
+    // 2. update 0002_2011_11_patch_fix_version.diff file
+
+    /// @todo if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply
+    ///       we need thus to regenerate one (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
+
+    $files = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+    pake_replace_regexp( $files, $opts['dist']['dir'], array(
+        '/$\+ +const +VERSION_MAJOR += +\d/;' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
+        '/$\+ +const +VERSION_MINOR += +\d/;' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
+    ) );
+
+    // 3. add new changelog file
+    /// @todo calculate sequence nr.
+    $seqnr = '0099';
+    $newdifffile = $seqnr .'_' . str_replace( '.', '_', $opts['version']['alias'] ) . '_patch_fix_changelog.diff';
+    pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
+    $repo->add( array( $newdifffile ) );
+
+    // 4. update ezpublish-gpl.properties
+
+
 }
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
@@ -319,10 +432,18 @@ function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
     pake_remove_dir( $opts['dist']['dir'] );
 }
 
+/**
+ * We rely on the pake dependency system to do the real stuff
+ * (run pake -P to see tasks included in this one)
+ */
 function run_all( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
+/**
+ * We rely on the pake dependency system to do the real stuff
+ * (run pake -P to see tasks included in this one)
+ */
 function run_clean_all( $task=null, $args=array(), $cliopts=array() )
 {
 }
@@ -383,6 +504,36 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
     }
 }
 
+function run_help( $task=null, $args=array(), $cliopts=array() )
+{
+    if ( count( $args ) == 0 || $args[0] == 'help' )
+    {
+        echo "To get detailed description of a taks, run: pake help \$task\n";
+        echo "To see list of available tasks, run: pake -T\n";
+        echo "To see list of tasks dependencies, run: pake -P\n";
+        echo "To see more available options, run: pake -H\n";
+    }
+    else
+    {
+        try
+        {
+            $task = pakeTask::get( $args[0] );
+            if ( isset( $GLOBALS['pake_longdesc'][$args[0]] ) && $GLOBALS['pake_longdesc'][$args[0]] != '' )
+            {
+                echo $GLOBALS['pake_longdesc'][$args[0]];
+            }
+            else
+            {
+                echo $task->get_comment();
+            }
+        }
+        catch( exception $e )
+        {
+            echo "The task '{$args[0]}' is not available";
+        }
+
+    }
+}
 /**
 * Class implementing the core logic for our pake tasks
 * @todo separate in another file?
@@ -392,50 +543,34 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.1';
+    static $version = '0.2-dev';
     static $min_pake_version = '1.6.1';
     static $projname = 'ezpublish';
 
+    // leftover from ezextensionbuilder
     static function getBuildDir( $opts )
     {
-        $dir = $opts['build']['dir'];
-        return $dir;
+        return $opts['build']['dir'];
     }
 
     // leftover from ezextensionbuilder
     static function getProjName()
     {
         return self::$projname;
-        /*if ( self::$defaultext != null )
-        {
-            return self::$defaultext;
-        }
-        $files = pakeFinder::type( 'file' )->name( 'options-*.yaml' )->not_name( 'options-sample.yaml' )->not_name( 'options-ezextensionbuilder.yaml' )->maxdepth( 0 )->in( 'pake' );
-        if ( count( $files ) == 1 )
-        {
-            self::$defaultext = substr( basename( $files[0] ), 8, -5 );
-            pake_echo ( 'Found extension: ' . self::$defaultext );
-            return self::$defaultext;
-        }
-        else if ( count( $files ) == 0 )
-        {
-            throw new pakeException( "Missing configuration file pake/options-[extname].yaml, cannot continue" );
-        }
-        else
-        {
-            throw new pakeException( "Multiple configuration files pake/options-*.yaml found, need to specify an extension name to continue" );
-        }*/
     }
 
     /**
+    * Loads build options from config file.
     * nb: when called with a custom project name, sets it as current for subsequent calls too
+    * @return array all the options
+    *
+    * @todo remove support for a separate project name, as it is leftover from ezextensionbuilder
     */
     static function getOpts( $projname='' )
     {
         if ( $projname == '' )
         {
             $projname = self::getProjName();
-            //self::$defaultext = $projname;
         }
         else
         {
@@ -449,9 +584,8 @@ class eZPCPBuilder
         return self::$options[$projname];
     }
 
-    /// @todo
     /// @bug this only works as long as all defaults are 2 levels deep
-    static function loadConfiguration ( $infile='pake/options.yaml', $projname='' )
+    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='' )
     {
         $mandatory_opts = array( 'ezpublish' => array( 'name' ), 'version' => array( 'major', 'minor', 'release' ) );
         $default_opts = array(
@@ -459,7 +593,7 @@ class eZPCPBuilder
             'dist' => array( 'dir' => 'dist' ),
             'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true, 'doxygen_doc' => false, 'ezpackage' => false, 'pearpackage' => false*/ ),
             'version' => array( 'license' => 'GNU General Public License v2.0' ),
-            'releasenr' => array( 'separator' => '.' ),
+            //'releasenr' => array( 'separator' => '.' ),
             //'files' => array( 'to_parse' => array(), 'to_exclude' => array(), 'gnu_dir' => '', 'sql_files' => array( 'db_schema' => 'schema.sql', 'db_data' => 'cleandata.sql' ) ),
             /*'dependencies' => array( 'extensions' => array() )*/ );
         /// @todo !important: test if !file_exists give a nicer warning than what we get from loadFile()
@@ -547,7 +681,7 @@ class eZPCPBuilder
 
     /**
     * Checks the latest version available online
-    * @return string the version nr. or the new version of the file, depending on input param (false in case of error)
+    * @return string the version nr. or the new version of the file (ie. its contents) , depending on input param (false in case of error)
     */
     static function latestVersion( $getfile=false )
     {
@@ -568,7 +702,8 @@ class eZPCPBuilder
     }
 
     /**
-    * Creates an archive out of a directory
+    * Creates an archive out of a directory.
+    * Requires the Zeta Components
     */
     static function archiveDir( $sourcedir, $archivefile, $archivetype, $no_top_dir=false )
     {
@@ -576,6 +711,11 @@ class eZPCPBuilder
         {
             $zipext = 'gz';
             $target = substr( $archivefile, 0, -3 );
+        }
+        else if ( substr( $archivefile, -4 ) == '.bz2' )
+        {
+            $zipext = 'bz2';
+            $target = substr( $archivefile, 0, -4 );
         }
         else if ( substr( $archivefile, -6 ) == '.ezpkg' )
         {
@@ -611,13 +751,67 @@ class eZPCPBuilder
         $tar->close();
         if ( $zipext )
         {
-            $fp = fopen( 'compress.zlib://' . ( $zipext == 'ezpkg' ? substr( $target, 0, -4 ) : $target ) . ".$zipext", 'wb9' );
+            $compress = 'zlib';
+            if ( $zipext == 'bz2' )
+            {
+                $compress = 'bzip2';
+            }
+            $fp = fopen( "compress.$compress://" . ( $zipext == 'ezpkg' ? substr( $target, 0, -4 ) : $target ) . ".$zipext", 'wb9' );
             /// @todo read file by small chunks to avoid memory exhaustion
             fwrite( $fp, file_get_contents( $target ) );
             fclose( $fp );
             unlink( $target );
         }
         pake_echo_action( 'file+', $archivefile );
+    }
+
+    /**
+     * Converts the matched lines from git log to changelog lines.
+     * NB: this function is only parked here as a kind of "namespace", might find a better place fort it
+     * @param array $matches PREG_PATTERN_ORDER array
+     * @return array( changelogEntries )
+     */
+    static function gitLogMatchesAsEntries( $matches )
+    {
+        $entries = array();
+        $indexedItems = array();
+
+        // move to an array( bugid ) => text for sorting
+        for( $i = 0, $c = count( $matches[0] ); $i < $c; $i++ )
+        {
+            $indexedItems[$matches[1][$i]] = $matches[2][$i];
+        }
+        ksort( $indexedItems );
+
+        // format
+        foreach ( $indexedItems as $id => $text )
+        {
+            $entries[] = "- #$id: $text";
+        }
+
+        return $entries;
+    }
+
+    /// generate name for changelog file. We assume 2011.1 .. 2011.12 naming convention
+    static function changelogFilename( $opts )
+    {
+        $filename = 'CHANGELOG-' . $opts['version']['alias'] . '-to-';
+        if ( isset( $opts['version']['previous']['name'] ) )
+        {
+            $filename .=  $opts['version']['previous']['name'] . '.txt';
+        }
+        else
+        {
+            if ( $opts['version']['minor'] > 1 )
+            {
+                $filename .=  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 ) . '.txt';
+            }
+            else
+            {
+                $filename .=  ( $opts['version']['major'] - 1 ) . '.12.txt';
+            }
+        }
+        return $filename;
     }
 }
 
@@ -728,6 +922,25 @@ function pake_antpattern( $files, $rootdir )
     return $results;
 }
 
+    if ( !function_exists( 'pake_longdesc' ) )
+    {
+        $GLOBALS['pake_longdesc'] = array();
+        /**
+        * Allows the user to define a long description for tasks, besides what is
+        * done via pake_desk.
+        * @param, string $desc If $description is empty, phpdoc for the function is used
+        */
+        function pake_longdesc( $task, $desc='' )
+        {
+            $func = 'run_' . str_replace( '-', '_', $task );
+            if ( $desc == '' && function_exists( $func ) )
+            {
+                $func = new ReflectionFunction( $func );
+                $desc = $func->getDocComment();
+            }
+            $GLOBALS['pake_longdesc'][$task] = $desc;
+        }
+    }
 }
 
 
@@ -815,7 +1028,10 @@ pake_task( 'init' );
 
 /// @todo ...
 pake_desc( 'Builds the cms. Options: --skip-init' );
-pake_task( 'build', 'init' );
+pake_task( 'build', 'init', 'generate-changelog' );
+
+pake_desc( 'Generates a changelog file from GIT logs' );
+pake_task( 'generate-changelog' );
 
 pake_desc( 'Removes the build/ directory' );
 pake_task( 'clean' );
@@ -877,6 +1093,8 @@ pake_task( 'tool-upgrade-check' );
 pake_desc( 'Upgrades to the latest version of the tool available online' );
 pake_task( 'tool-upgrade' );
 
+pake_desc( 'Returns detailed description of existing tasks. Usage: php pakefile.php help $task' );
+pake_task( 'help' );
 
 }
 

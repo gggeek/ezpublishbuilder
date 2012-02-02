@@ -1,5 +1,7 @@
 # global
 
+. init task: do not clone comple repo every time, as it takes a long time
+
 . decide std name of install dir
 
 . all pake tasks: download, build, ...
