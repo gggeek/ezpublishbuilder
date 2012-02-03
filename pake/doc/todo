@@ -1,18 +1,18 @@
 # global
 
-. init task: do not clone comple repo every time, as it takes a long time
+. init task: do not clone complete repo every time, as it takes a long time
 
 . decide std name of install dir
 
 . all pake tasks: download, build, ...
-  - replace version nr in install dir ? (nb: not for ms web app package)
+  - replace version nr. in install dir ? (nb: not for ms web app package)
 
 . updgared bundled pake to rev. 1.6.3
 
 
-# build task
+# update-ci-repo  task
 
-. when running the build, after generating changelog, task should wait for user input before going on. Otoh when running simply generate-changelog, it should exit with a different msg
+. check for errors from git commands (eg. for bad perms)
 
 
 # Windows Web Application Gallery / Web Platform Installer package

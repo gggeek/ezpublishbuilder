@@ -235,12 +235,17 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
 }
 
-function run_wait( $task=null, $args=array(), $cliopts=array() )
+function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
 {
-    $cont = pake_select_input( "Please review (edit by hand) the changelog file.\nOnce you are done, press '1' to continue the build task. Otherwise press '2' to exit.", array( 'Continue', 'Stop' ), 1 );
-    if ( $cont != 'Y' )
+    $skip_pause = @$cliopts['skip-changelog-pause'];
+
+    if ( !$skip_pause )
     {
-        exit;
+        $cont = pake_select_input( "Please review (edit by hand) the changelog file.\nOnce you are done, press '1' to continue the build task. Otherwise press '2' to exit.", array( 'Continue', 'Stop' ), 1 );
+        if ( $cont != 'Y' )
+        {
+            exit;
+        }
     }
 }
 
@@ -261,9 +266,16 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // generate changelog diff
     $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
-    $difffile = eZPCPBuilder::getBuildDir( $opts ) . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
-    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
+    // get absolute path to build dir
+    $absrootpath =  pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( eZPCPBuilder::getBuildDir( $opts ) );
+    $absrootpath = dirname( $absrootpath[0] );
+    $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
+
     /// @todo test for errors
+    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git add ' . escapeshellarg( $changelogdir ), $out, $return );
+
+    /// @todo test for errors
+    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix --staged -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
 
     // start work on the ci repo:
 
@@ -297,30 +309,57 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     ///       we need thus to regenerate one (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
 
     $files = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
-    pake_replace_regexp( $files, $opts['dist']['dir'], array(
-        '/^\+ +const +VERSION_MAJOR += +\d/' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
-        '/^\+ +const +VERSION_MINOR += +\d/' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
+    pake_replace_regexp( $files, $cipath . '/patches', array(
+        '/^\+ +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
+        '/^\+ +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
-    $repo->add( array( $cipath . '/patches/0002_2011_11_patch_fix_version.diff' ) );
+    $repo->add( array( 'patches/0002_2011_11_patch_fix_version.diff' ) );
 
     // 3. add new changelog file
     /// @todo calculate sequence nr.
     $seqnr = '0099';
     $newdifffile = $seqnr .'_' . str_replace( '.', '_', $opts['version']['alias'] ) . '_patch_fix_changelog.diff';
     pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
-    $repo->add( array( $newdifffile ) );
+    $repo->add( array( 'patches/' . $newdifffile ) );
 
     // 4. update ezpublish-gpl.properties
     $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->in( $cipath . '/properties' );
-    pake_replace_regexp( $files, $opts['dist']['dir'], array(
-        '/^ezp\.cp\.version\.major += +\d+/' => "ezp.cp.version.major = {$opts['version']['major']};",
-        '/^ezp\.cp\.version\.minor += +\d+/' => "ezp.cp.version.minor = {$opts['version']['minor']};"
+    pake_replace_regexp( $files, $cipath . '/properties', array(
+        '/^ezp\.cp\.version\.major += +.+$/m' => "ezp.cp.version.major = {$opts['version']['major']}",
+        '/^ezp\.cp\.version\.minor += +.+$/m' => "ezp.cp.version.minor = {$opts['version']['minor']}"
     ) );
-    $repo->add( array(  $cipath . '/properties/ezpublish-gpl.properties\'' ) );
+    $repo->add( array( 'properties/ezpublish-gpl.properties' ) );
 
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
     // missing command in pakegit
-    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git push', $ouput, $return );
+    exec( 'cd ' . escapeshellarg( $cipath ) . ' && git push', $ouput, $return );
+}
+
+function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
+{
+    $skip_pause = @$cliopts['skip-before-jenkins-pause'];
+
+    if ( !$skip_pause )
+    {
+        $cont = pake_select_input( "Please verify the state of both eZ and CI github repos.\nOnce you are done, press '1' to continue the build task. Otherwise press '2' to exit.", array( 'Continue', 'Stop' ), 1 );
+        if ( $cont != 'Y' )
+        {
+            exit;
+        }
+    }
+}
+
+function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+
+    /// call jenkins Remote Access Api
+    /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
+    /// @see https://wiki.jenkins-ci.org/display/JENKINS/Authenticating+scripted+clients
+    $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/build';
+    $out = pake_read_file( $buildurl );
+
+    /// @todo start polling on build status
 }
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
@@ -980,17 +1019,23 @@ pake_task( 'show-properties' );
 pake_desc( 'Downloads sources from git and removes unwanted files' );
 pake_task( 'init' );
 
-pake_desc( 'Builds the cms. Options: --skip-init' );
-pake_task( 'build', 'init', 'generate-changelog', 'wait', 'update-ci-repo' );
+pake_desc( 'Builds the cms. Options: --skip-init, --skip-changelog-pause, --skip-before-jenkins-pause' );
+pake_task( 'build', 'init', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build' );
 
 pake_desc( 'Generates a changelog file from git logs' );
 pake_task( 'generate-changelog' );
 
 pake_desc( 'Dummy task. Asks a question to the user and waits for an answer...' );
-pake_task( 'wait' );
+pake_task( 'wait-for-changelog' );
 
 pake_desc( 'Commits changelog to the "ci" git repo and updates in there other files holding version-related infos' );
 pake_task( 'update-ci-repo' );
+
+pake_desc( 'Dummy task. Asks a question to the user and waits for an answer...' );
+pake_task( 'wait-for-continue' );
+
+pake_desc( 'Starts the build projects on Jenkins' );
+pake_task( 'run-jenkins-build' );
 
 pake_desc( 'Removes the build/ directory' );
 pake_task( 'clean' );

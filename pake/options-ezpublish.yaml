@@ -15,6 +15,15 @@ version:
         # If empty, changelog will have to be filled in ALL by hand
         git-revision: 57115473dd4db9243b23e94a55612ba1977391fa
 
+build:
+    # Directory for the build.
+    # In it, the "ezpublish" subdir is to be a git repo clone of the eZ sources
+    dir: build
+
+dist:
+    # Directory for placing build products
+    dir: dist
+
 create:
     mswpipackage: yes
 
@@ -34,13 +43,17 @@ git:
 
 # "ci" git repo, used by the eZP "official" build process
 ci-repo:
-    git-url: https://github.com/ezsystems/ci.git
+    git-url: git@github.com:ezsystems/ci.git
     git-path: ezpublish/branches/github
     git-branch: community-build
 
     # if a local copy of this repo is onboard, set its value here.
     # otherwise, a copy will be donloaded in the build directory
-    local-path: d:\htdocs\ezp\github\ci\
+    local-path: d:\htdocs\ezp\github\ci
+
+jenkins:
+    url: http://ci.ez.no/
+    job: ezpublish-full-git
 
 # unused yet...
 #files:
