@@ -1,16 +1,33 @@
+see also the ideas described here:
+https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWbQBLlVVk/edit?hl=en_GB
+
 # global
 
-. init task: do not clone complete repo every time, as it takes a long time
+. fix: correct naming of the new diff file for the ci repo (not 0099)
 
-. decide std name of install dir
+. new task: download tarball to drive wpi build
+
+. new task: generate html version of changelog
+
+. decide std name of install dir (???)
 
 . all pake tasks: download, build, ...
-  - replace version nr. in install dir ? (nb: not for ms web app package)
+  - replace version nr. in install dir ? (nb: not for ms web app package) (???)
 
-. updgared bundled pake to rev. 1.6.3
+. upgrade bundled pake to rev. 1.6.3 or later
+
+
+# init task
+
+. do not clone complete repo every time, as it takes a long time - allow an update to work
 
 
 # update-ci-repo  task
+
+. allow task to work even after an eZ Ent. version upgrade
+
+
+# init, init-ci-repo, update-ci-repo, generate-changelog tasks
 
 . check for errors from git commands (eg. for bad perms)
 

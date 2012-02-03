@@ -8,8 +8,8 @@ version:
     release: 0
 
     previous:
-        # Previous name - used eg. for changelog filename.
-        # If not set, it is generated as previous month than current version built
+        # Previous version name - used eg. for changelog filename.
+        # If not set, it is generated as 'previous month than current version being built'
         #name:  2011.12
         # git tag for previous version, used in changelog generation.
         # If empty, changelog will have to be filled in ALL by hand
@@ -41,16 +41,17 @@ git:
     # in case a different branch is to be used for the build
     #branch:
 
-# "ci" git repo, used by the eZP "official" build process
+# "ci" git repo, used by the eZP "main" build process
 ci-repo:
     git-url: git@github.com:ezsystems/ci.git
     git-path: ezpublish/branches/github
     git-branch: community-build
 
-    # if a local copy of this repo is onboard, set its value here.
-    # otherwise, a copy will be donloaded in the build directory
+    # If a local copy of this repo is already onboard, set its value here.
+    # Otherwise, a copy will be donloaded in it when running the init-ci-repo task
     local-path: d:\htdocs\ezp\github\ci
 
+# the server running the eZP "main" build process
 jenkins:
     url: http://ci.ez.no/
     job: ezpublish-full-git
