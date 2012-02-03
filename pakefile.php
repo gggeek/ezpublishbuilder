@@ -156,8 +156,8 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         /// @todo check if given revision exists in git repo
 
         // pake's own git class does not allow usage of 'git log' yet
-        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $opts['version']['previous']['git-revision'] ) . "..HEAD", $changelogArray, $ok );
         /// @todo test for git errors
+        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $opts['version']['previous']['git-revision'] ) . "..HEAD", $changelogArray, $ok );
 
         $changelogArray = array_map( 'trim', $changelogArray );
         $changelogText = implode( "\n", $changelogArray );
@@ -301,8 +301,19 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $repo->add( array( 'patches/0002_2011_11_patch_fix_version.diff' ) );
 
     // 3. add new changelog file
-    /// @todo calculate sequence nr.
-    $seqnr = '0099';
+    /// calculate sequence nr.
+    $max = 0;
+    $files = pakeFinder::type( 'file' )->maxdepth( 0 )->in( $cipath . '/patches' );
+    foreach( $files as $file )
+    {
+        echo "$file\n";
+        $nr = (int)substr( basename( $file ), 0, 4 );
+        if ( $nr > $max )
+        {
+            $max = $nr;
+        }
+    }
+    $seqnr = str_pad( (  $max + 1 ), 4, '0', STR_PAD_LEFT );
     $newdifffile = $seqnr .'_' . str_replace( '.', '_', $opts['version']['alias'] ) . '_patch_fix_changelog.diff';
     pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
     $repo->add( array( 'patches/' . $newdifffile ) );
@@ -418,7 +429,8 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
         $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
         if ( $opts['create']['mswpipackage'] )
         {
-            // add extra files to build @todo move this to another phase/task...
+            // add extra files to build
+            /// @todo move this to another phase/task... ?
             $toppath = eZPCPBuilder::getBuildDir( $opts );
             $pakepath = dirname( __FILE__ ) . '/pake';
             pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql' );

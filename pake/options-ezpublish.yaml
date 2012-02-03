@@ -53,7 +53,7 @@ ci-repo:
 
 # the server running the eZP "main" build process
 jenkins:
-    url: http://ci.ez.no/
+    url: http://ci.ez.no
     job: ezpublish-full-git
 
 # unused yet...
