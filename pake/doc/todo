@@ -5,11 +5,13 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . new task: generate html version of changelog
 
-. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it
+. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step 12 in the instructions)
 
-. improve the task that generates changelog: have it
-  1. go to jenkins and fetch the git revision of a given build
-  2. go to jenkins and find, based on names, the revision corresponding to the latest build
+. new task: tag the build in jenkins with correct "keep forever" and "description" data (step 11 in the instructions)
+
+. improve the task that generates changelog (automate step 3 in the instructions): have it
+  1. go to jenkins and find, based on names, the revision corresponding to the latest build
+  2. go to jenkins and fetch the git revision of a given build
 
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
