@@ -5,12 +5,12 @@ Introduction
 ----------------------------------
 
 A set of php files and tools to help in the "build process" of eZ Publish Community Project
-tarballs and deliverables.
-It is based on the Pake tool.
-It is not a "complete" tool, as it relies on external repositories and build servers
-to do the heavy lifting.
+tarballs and deliverables
+- it is based on the Pake tool;
+- it is not a "complete" tool, as it relies on external repositories and build servers
+  to do the heavy lifting.
 
-The build process carried out by this tool consists of the following steps:
+The build process carried out by this tool consists broadly speaking of the following steps:
 - getting a copy of the latest version of the source code from the git repository
 - creating a changelog file and adding it to the sources
 - invoking the external build process

@@ -5,6 +5,12 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . new task: generate html version of changelog
 
+. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it
+
+. improve the task that generates changelog: have it
+  1. go to jenkins and fetch the git revision of a given build
+  2. go to jenkins and find, based on names, the revision corresponding to the latest build
+
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
 . all pake tasks: download, build, ...
@@ -30,7 +36,7 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # init-ci-repo  task
 
-. allow task to set up username and email automatically
+. allow task to set up username and email automatically, and also to test push to upstream
 
 
 # Windows Web Application Gallery / Web Platform Installer package

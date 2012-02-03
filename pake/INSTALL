@@ -1,0 +1,79 @@
+Requirements
+============
+
+- the php cli
+- the Zeta Components php library (only for generating tarballs and html docs from rst)
+- command line tools: git
+
+
+How to install and use eZ Publish Builder
+=========================================
+
+This is a 5 steps tutorial.
+
+
+1. Download the pakefile script (once)
+--------------------------------------
+
+    cd <my_build_directory>
+    wget http://svn.projects.ez.no/ezpublishbuilder/stable/pakefile.php
+
+
+2. Launch the pakefile script for the first time (once)
+-------------------------------------------------------
+
+The script is able to bootstrap, ie. to download all missing components the
+first time that you run it: ::
+
+    php pakefile.php
+
+This will create a directory ./pake/ and download into it all needed stuff from http://svn.projects.ez.no/ezpublishbuilder.
+
+
+3. Clone the CI git repository to your computer (once)
+------------------------------------------------------
+
+This task is partially automated via the script:
+
+If you have already installed a clone of the CI git repository, just edit the
+configuration file ./pake/options-ezpublish.yaml and set the path to it.
+
+If you have not,
+a. edit the configuration file ./pake/options-ezpublish.yaml and set the path
+   to where it has to be downloaded
+b. run php pakefile.php init-ci-repo
+c. alter the git configuration file in the directory where the CI repo has been
+   cloned, adding a username and email
+d. test that you have permissions to execute pushes on the upstream repository
+
+
+4. Edit the configuration file (for every build)
+------------------------------------------------
+
+A starting configuration file is provided by the extension: ./pake/options-ezpublish.yaml
+You should edit it to suit your needs.
+
+Parameters that you will have to change:
+- version numbers
+- ci-repo/local-path
+- version/previous/git-revision
+
+
+5. Launch the build (for every build)
+-------------------------------------------
+
+To get a list of all available tasks run::
+
+    php pakefile.php --tasks
+
+[... to be documented more ...]
+
+NB: The Zeta Components library must be available in your php include_path. If it
+is not, you can set the environment variable PHP_CLASSPATH to make it available
+to the script.
+
+
+More information
+================
+
+Read the README file and anything in the ./docs/ folder for more details
