@@ -49,6 +49,7 @@ ci-repo:
 
     # If a local copy of this repo is already onboard, set its value here.
     # Otherwise, a copy will be donloaded in it when running the init-ci-repo task
+    # NB: it should not be within the 'build' or 'dist' directories
     local-path: d:\htdocs\ezp\github\ci
 
 # the server running the eZP "main" build process

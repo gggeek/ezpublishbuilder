@@ -56,11 +56,10 @@ function run_default()
     pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: php pakefile.php --tasks to learn more about available tasks." );
 }
 
-/// @todo show properties in a more friendly format
 function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
-    pake_echo ( var_export( $opts, true ) );
+    pake_echo ( print_r( $opts, true ) );
 }
 
 /**
@@ -77,7 +76,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
         $opts = eZPCPBuilder::getOpts( @$args[0] );
         pake_mkdirs( eZPCPBuilder::getBuildDir( $opts ) );
 
-        $destdir = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+        $destdir = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
     }
 
     if ( ! $skip_init_fetch )
@@ -149,7 +148,7 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
 
     if ( isset( $opts['version']['previous']['git-revision'] ) )
     {
@@ -231,7 +230,7 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
     $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
@@ -253,12 +252,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     pakeGit::$needs_work_tree_workaround = true;
 
     $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
 
     // generate changelog diff
     $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
     // get absolute path to build dir
-    $absrootpath =  pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( eZPCPBuilder::getBuildDir( $opts ) );
+    $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( eZPCPBuilder::getBuildDir( $opts ) . '/source' );
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
@@ -369,12 +368,12 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     $buildnr = $matches[1];
 
     /*
-    $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json';
-    $out = json_decode( pake_read_file( $buildurl ), true );
-    // $buildnr = ...
+       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json';
+       $out = json_decode( pake_read_file( $buildurl ), true );
+       // $buildnr = ...
     */
 
-    pake_echo( "Build $buildnr triggered. Staring polling..." );
+    pake_echo( "Build $buildnr triggered. Starting polling..." );
     $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json';
     while ( true )
     {
@@ -410,10 +409,66 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
-/// @todo
 function run_dist_init( $task=null, $args=array(), $cliopts=array() )
 {
-    pake_echo( 'TO DO! This task should download from jenkins the tarball of the latest buid' );
+    $opts = eZPCPBuilder::getOpts( @$args[0] );
+
+    $buildnr = @$cliopts['build'];
+    if ( $buildnr == '' )
+    {
+        pake_echo( 'Fetching latest available build' );
+        $buildnr = 'lastBuild';
+    }
+
+    // get list of files from the build
+    $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $buildnr;
+    $out = json_decode( pake_read_file( $buildurl . '/api/json' ), true );
+    if ( !is_array( $out ) || !is_array( @$out['artifacts'] ) )
+    {
+        pake_echo( 'Error in retrieving build description from Jenkins or no artifacts in build' );
+        return;
+    }
+    else
+    {
+        if ( $buildnr == 'lastBuild' )
+        {
+            pake_echo( 'Found build ' . $out['number'] );
+        }
+    }
+
+    // find the correct variant
+    $fileurl = '';
+    foreach( $out['artifacts'] as $artifact )
+    {
+        if ( substr( $artifact['fileName'], -4 ) == '.zip' && strpos( $artifact['fileName'], 'with_ezc' ) !== false )
+        {
+            $fileurl = $buildurl . '/artifact/' . $artifact['relativePath'];
+            break;
+        }
+    }
+    if ( $fileurl == '' )
+    {
+        pake_echo( "No artifacts aviable for build $buildnr" );
+        return;
+    }
+    // download and unzip the file
+    $filename = sys_get_temp_dir() . '/' .  $artifact['fileName'];
+    pake_write_file( $filename, pake_read_file( $fileurl ), 'cpb' );
+    if ( !class_exists( 'ezcArchive' ) )
+    {
+        throw new pakeException( "Missing Zeta Components: cannot unzip downloaded file. Use the environment var PHP_CLASSPATH" );
+    }
+    // clean up the 'release' dir
+    pake_remove_dir( $opts['dist']['dir'] );
+    // and unzip eZ into it - in a folder with a specific name
+    $zip = ezcArchive::open( $filename, ezcArchive::ZIP );
+    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/release';
+    $zip->extract( $rootpath );
+    $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
+    $currdir = $subdir[0];
+    $finaldir = $rootpath . '/' . eZPCPBuilder::getProjName();
+    pake_rename( $currdir, $finaldir );
+    pake_echo( "dir+         " . $finaldir );
 }
 
 function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
@@ -426,12 +481,13 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Missing Zeta Components: cannot generate tar file. Use the environment var PHP_CLASSPATH" );
         }
         pake_mkdirs( $opts['dist']['dir'] );
-        $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/' . eZPCPBuilder::getProjName();
+        $toppath = eZPCPBuilder::getBuildDir( $opts ) . '/release';
+        $rootpath = $toppath . '/' . eZPCPBuilder::getProjName();
         if ( $opts['create']['mswpipackage'] )
         {
             // add extra files to build
             /// @todo move this to another phase/task... ?
-            $toppath = eZPCPBuilder::getBuildDir( $opts );
+
             $pakepath = dirname( __FILE__ ) . '/pake';
             pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql' );
 
@@ -1033,7 +1089,7 @@ pake_task( 'wait-for-continue' );
 pake_desc( 'Executes the build projects on Jenkins' );
 pake_task( 'run-jenkins-build' );
 
-pake_desc( 'Downloads the build tarballs from Jenkins for further repackaging' );
+pake_desc( 'Downloads the build tarballs from Jenkins for further repackaging. Options: --build=<buildnr>' );
 pake_task( 'dist-init' );
 
 pake_desc( 'Creates the MS WPI' );

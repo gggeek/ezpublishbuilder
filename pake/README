@@ -46,19 +46,21 @@ Directory structure
 Let's call ROOT_DIR the directory where you will be running the build script.::
 
 ROOT_DIR/
- |___pakefile.php this is the script driving the build
+ |___pakefile.php   this is the script driving the build
  |
- |___build        a copy of the eZP sources will be downloaded here during the build
+ |___build
+ |   |___source/    a copy of the eZP sources will be downloaded here during the build
+ |   `___release/   tarballs produced by the Jenkins build will be downloaded here
  |
- |___dist/        tarballs produced by the build will be made available here
+ |___dist/          tarballs produced by the build will be made available here
  |
  `___pake/
-     |___doc/     more documentation, such as changelogs, todos and known bugs
-     |___src/     a complete copy of the pake tool
-     |___README   this file
-     |___INSTALL  installation instructions
-     |___LICENSE  license file
-     `___...      template files used so far to the generate the wpi package
+     |___doc/       more documentation, such as changelogs, todos and known bugs
+     |___src/       a complete copy of the pake tool
+     |___README     this file
+     |___INSTALL    installation instructions
+     |___LICENSE    license file
+     `___wpifiles   template files used to the generate the wpi package
 
 As you can see, we try to pollute as little as possible the ROOT_DIR: everything
 is neatly stowed away in the pake, build and dist subdirectories.
