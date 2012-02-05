@@ -58,7 +58,7 @@ function run_default()
 
 function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
     pake_echo ( print_r( $opts, true ) );
 }
 
@@ -73,10 +73,10 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 
     if ( ! $skip_init )
     {
-        $opts = eZPCPBuilder::getOpts( @$args[0] );
-        pake_mkdirs( eZPCPBuilder::getBuildDir( $opts ) );
+        $opts = eZPCPBuilder::getOpts( $args );
+        pake_mkdirs( $opts['build']['dir'] );
 
-        $destdir = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
+        $destdir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
     }
 
     if ( ! $skip_init_fetch )
@@ -107,7 +107,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
  */
 function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
     if ( @$opts['ci-repo']['local-path'] == '' )
     {
         throw new pakeException( "Missing option ci-repo:local-path in config file: can not download CI repo" );
@@ -147,16 +147,75 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
 */
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
     if ( isset( $opts['version']['previous']['git-revision'] ) )
+    {
+        $previousrev = $opts['version']['previous']['git-revision'];
+    }
+    else
+    {
+        $prevname = eZPCPBuilder::previousVersionName( $opts );
+        pake_echo( "Previous release assumed to be $prevname" );
+        pake_echo( "Looking up corresponding build number in Jenkins" );
+        // find git rev of the build of the previous release on jenkins
+        $previousrev = '';
+        $buildsurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json?tree=builds[description,number,result,binding]';
+        // pake_read_file throws exception on http errors, no need to check for it
+        $out = json_decode( pake_read_file( $buildsurl ), true );
+        if ( is_array( $out ) && isset( $out['builds'] ) )
+        {
+            $previousbuild = '';
+
+            foreach( $out['builds'] as $build )
+            {
+                if ( strpos( $build['description'], $prevname ) !== false )
+                {
+                    $previousbuild = $build['number'];
+                    break;
+                }
+            }
+
+            if ( $previousbuild )
+            {
+                $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $previousbuild . '/api/json';
+                $out = json_decode( pake_read_file( $buildurl ), true );
+                if ( is_array( @$out['actions'] ) )
+                {
+                    foreach( $out['actions'] as $action )
+                    {
+                        if ( isset( $action['lastBuiltRevision'] ) )
+                        {
+                            $previousrev = $action['lastBuiltRevision']['SHA1'];
+                            pake_echo( "Release $prevname found in Jenkins build $previousbuild, corresponding to git rev. $previousrev" );
+                            break;
+                        }
+                    }
+                    if ( $previousrev == '' )
+                    {
+                        pake_echo( "Git revision not found in builds description" );
+                    }
+                }
+            }
+            else
+            {
+                pake_echo( "Release not found in builds list" );
+            }
+        }
+        else
+        {
+            pake_echo( "Cannot retrieve builds list" );
+        }
+    }
+
+    if ( $previousrev != '' )
     {
         /// @todo check if given revision exists in git repo
 
         // pake's own git class does not allow usage of 'git log' yet
         /// @todo test for git errors
-        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $opts['version']['previous']['git-revision'] ) . "..HEAD", $changelogArray, $ok );
+        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD", $changelogArray, $ok );
 
         $changelogArray = array_map( 'trim', $changelogArray );
         $changelogText = implode( "\n", $changelogArray );
@@ -178,10 +237,11 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
                 $enhancementsMatches[0],
                 $pullreqsMatches[0] )
         );
+
     }
     else
     {
-        pake_echo( 'The configuration file does not have the git tag of last version. Generating an empty changelog file' );
+        pake_echo( 'Can not determine the git tag of last version. Generating an empty changelog file' );
 
         $bugfixesMatches = array(array());
         $enhancementsMatches = array(array());
@@ -229,8 +289,8 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
 /// @todo
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
     $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
@@ -251,13 +311,13 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // and a patched pakeGit class is used ( > pake 1.6.3)
     pakeGit::$needs_work_tree_workaround = true;
 
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/source/' . eZPCPBuilder::getProjName();
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
     // generate changelog diff
     $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
     // get absolute path to build dir
-    $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( eZPCPBuilder::getBuildDir( $opts ) . '/source' );
+    $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( $opts['build']['dir'] . '/source' );
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
@@ -346,7 +406,7 @@ function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
 
 function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
 
     /// Use jenkins Remote Access Api
     /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
@@ -362,8 +422,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     $ok = preg_match( '/<a href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
     if ( !$ok )
     {
-        pake_echo( "Build not started or unknown error" );
-        return;
+        throw new pakeException( "Build not started or unknown error" );
     }
     $buildnr = $matches[1];
 
@@ -381,8 +440,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
         $out = json_decode( pake_read_file( $buildurl ), true );
         if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
         {
-            pake_echo( "Error in retrieving build status" );
-            return;
+            throw new pakeException( "Error in retrieving build status" );
         }
         else if ( $out['building'] == false )
         {
@@ -397,7 +455,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     }
     else
     {
-        pake_echo( "Build failed or unknown status" );
+        throw new pakeException( "Build failed or unknown status" );
     }
 }
 
@@ -411,7 +469,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 
 function run_dist_init( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
 
     $buildnr = @$cliopts['build'];
     if ( $buildnr == '' )
@@ -462,7 +520,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_remove_dir( $opts['dist']['dir'] );
     // and unzip eZ into it - in a folder with a specific name
     $zip = ezcArchive::open( $filename, ezcArchive::ZIP );
-    $rootpath = eZPCPBuilder::getBuildDir( $opts ) . '/release';
+    $rootpath = $opts['build']['dir'] . '/release';
     $zip->extract( $rootpath );
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
     $currdir = $subdir[0];
@@ -473,7 +531,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
 
 function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
     if ( $opts['create']['mswpipackage'] )
     {
         if ( !class_exists( 'ezcArchive' ) )
@@ -481,7 +539,7 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Missing Zeta Components: cannot generate tar file. Use the environment var PHP_CLASSPATH" );
         }
         pake_mkdirs( $opts['dist']['dir'] );
-        $toppath = eZPCPBuilder::getBuildDir( $opts ) . '/release';
+        $toppath = $opts['build']['dir'] . '/release';
         $rootpath = $toppath . '/' . eZPCPBuilder::getProjName();
         if ( $opts['create']['mswpipackage'] )
         {
@@ -542,13 +600,13 @@ function run_all( $task=null, $args=array(), $cliopts=array() )
 
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
-    pake_remove_dir( eZPCPBuilder::getBuildDir( $opts ) );
+    $opts = eZPCPBuilder::getOpts( $args );
+    pake_remove_dir( $opts['build']['dir'] );
 }
 
 function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( @$args[0] );
+    $opts = eZPCPBuilder::getOpts( $args );
     pake_remove_dir( $opts['dist']['dir'] );
 }
 
@@ -660,12 +718,6 @@ class eZPCPBuilder
     static $projname = 'ezpublish';
 
     // leftover from ezextensionbuilder
-    static function getBuildDir( $opts )
-    {
-        return $opts['build']['dir'];
-    }
-
-    // leftover from ezextensionbuilder
     static function getProjName()
     {
         return self::$projname;
@@ -674,37 +726,32 @@ class eZPCPBuilder
     /**
     * Loads build options from config file.
     * nb: when called with a custom project name, sets it as current for subsequent calls too
+    * @param array $options the 1st option is the version to be built. If given, it overrides the one in the config file
     * @return array all the options
     *
     * @todo remove support for a separate project name, as it is leftover from ezextensionbuilder
     */
-    static function getOpts( $projname='' )
+    static function getOpts( $opts=array() )
     {
-        if ( $projname == '' )
-        {
-            $projname = self::getProjName();
-        }
-        else
-        {
-            self::$projname = $projname;
-        }
-
+        $projname = self::getProjName();
+        $projversion = @$opts[0];
         if ( !isset( self::$options[$projname] ) || !is_array( self::$options[$projname] ) )
         {
-            self::loadConfiguration( "pake/options-$projname.yaml", $projname );
+            self::loadConfiguration( "pake/options-$projname.yaml", $projname, $projversion );
         }
         return self::$options[$projname];
     }
 
     /// @bug this only works as long as all defaults are 2 levels deep
-    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='' )
+    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='', $projversion='' )
     {
+        /// @todo review the list of mandatory options
         $mandatory_opts = array( 'ezpublish' => array( 'name' ), 'version' => array( 'major', 'minor', 'release' ) );
         $default_opts = array(
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
             'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true, 'doxygen_doc' => false, 'ezpackage' => false, 'pearpackage' => false*/ ),
-            'version' => array( 'license' => 'GNU General Public License v2.0' ),
+            //'version' => array( 'license' => 'GNU General Public License v2.0' ),
             //'releasenr' => array( 'separator' => '.' ),
             //'files' => array( 'to_parse' => array(), 'to_exclude' => array(), 'gnu_dir' => '', 'sql_files' => array( 'db_schema' => 'schema.sql', 'db_data' => 'cleandata.sql' ) ),
             /*'dependencies' => array( 'extensions' => array() )*/ );
@@ -719,6 +766,13 @@ class eZPCPBuilder
                     throw new pakeException( "Missing mandatory option: $key:$opt" );
                 }
             }
+        }
+        if ( $projversion != '' )
+        {
+            $projversion = explode( '.', $projversion );
+            $options['version']['major'] = $projversion[0];
+            $options['version']['minor'] = isset( $projversion[1] ) ? $projversion[1] : '0';
+            $options['version']['release'] = isset( $projversion[2] ) ? $projversion[2] : '0';
         }
         if ( !isset( $options['version']['alias'] ) || $options['version']['alias'] == '' )
         {
@@ -904,27 +958,44 @@ class eZPCPBuilder
         return $entries;
     }
 
-    /// generate name for changelog file. We assume 2011.1 .. 2011.12 naming convention
+    /// generate name for changelog file.
     static function changelogFilename( $opts )
     {
-        $filename = 'CHANGELOG-';
+        return 'CHANGELOG-' . self::previousVersionName( $opts) . '-to-' . $opts['version']['alias'] . '.txt';
+    }
+
+    /**
+    * Returns the name of the previous version than the current one.
+    * Assumes 2011.1 .. 2011.12 naming schema.
+    * Partial support for 2012.1.2 schema (eg 2011.1.2 -> 2011.1.1 -> 2011.1 -> 20112.12)
+    * User can define an alternative previous version in config file.
+    * @bug what if previous of 2012.4 is 2012.3.9?
+    */
+    static function previousVersionName( $opts )
+    {
         if ( isset( $opts['version']['previous']['name'] ) )
         {
-            $filename .=  $opts['version']['previous']['name'];
+            return  $opts['version']['previous']['name'];
         }
         else
         {
+            if ( $opts['version']['release'] > 1 )
+            {
+                return $opts['version']['major'] . '.' . $opts['version']['minor'] . '.' . ( $opts['version']['release'] - 1 );
+            }
+            if ( $opts['version']['release'] == 1 )
+            {
+                return $opts['version']['major'] . '.' . $opts['version']['minor'];
+            }
             if ( $opts['version']['minor'] > 1 )
             {
-                $filename .=  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 );
+                return  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 );
             }
             else
             {
-                $filename .=  ( $opts['version']['major'] - 1 ) . '.12';
+                return ( $opts['version']['major'] - 1 ) . '.12';
             }
         }
-         $filename .= '-to-' . $opts['version']['alias'] . '.txt';
-        return $filename;
     }
 }
 

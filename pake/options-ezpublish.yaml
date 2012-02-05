@@ -3,6 +3,7 @@ ezpublish:
     name: community_project
 
 version:
+    # the version number set here can be overridden via command line arguments
     major: 2012
     minor: 1
     release: 0
@@ -12,8 +13,11 @@ version:
         # If not set, it is generated as 'previous month than current version being built'
         #name:  2011.12
         # git tag for previous version, used in changelog generation.
-        # If empty, changelog will have to be filled in ALL by hand
-        git-revision: 57115473dd4db9243b23e94a55612ba1977391fa
+        # If empty, this will be calculated by looking up in jenkins a build
+        # that has been tagged with the version number of the last build
+        # (eg 2012.1 => 2011.12), and then finding the git revision of the build
+        # immediately after that one
+        #git-revision: 57115473dd4db9243b23e94a55612ba1977391fa
 
 build:
     # Directory for the build.

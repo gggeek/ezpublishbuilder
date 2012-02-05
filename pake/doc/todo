@@ -3,15 +3,13 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # global
 
-. new task: generate html version of changelog
+. new task: generate html version of changelog from txt version
 
 . new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step 12 in the instructions)
 
 . new task: tag the build in jenkins with correct "keep forever" and "description" data (step 11 in the instructions)
 
-. improve the task that generates changelog (automate step 3 in the instructions): have it
-  1. go to jenkins and find, based on names, the revision corresponding to the latest build
-  2. go to jenkins and fetch the git revision of a given build
+. new task: tag the build in the revision history file on pubsvn.ez.no
 
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
@@ -26,14 +24,14 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 . allow task to work even after an eZ Ent. version upgrade
 
 
-# init, init-ci-repo, update-ci-repo, generate-changelog tasks
-
-. check for errors from git commands (eg. for bad perms)
-
-
 # init task
 
 . do not clone complete repo every time, as it takes a long time - allow an update to work
+
+
+# init, init-ci-repo, update-ci-repo, generate-changelog tasks
+
+. check for errors from git commands (eg. for bad perms)
 
 
 # init-ci-repo  task
