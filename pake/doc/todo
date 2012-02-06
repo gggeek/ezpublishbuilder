@@ -11,6 +11,10 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . new task: tag the build in the revision history file on pubsvn.ez.no
 
+. new task: generate upgrade instructions, checking for the need to run sql script
+  (ideally, sql upgrade scripts should be put in the diff files on ci.ez.no,
+  so that they are bundled with the release)
+
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
 . all pake tasks: download, build, ...
@@ -19,14 +23,9 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 . upgrade bundled pake to rev. 1.6.3 or later
 
 
-# update-ci-repo  task
+# update-ci-repo task
 
 . allow task to work even after an eZ Ent. version upgrade
-
-
-# init task
-
-. do not clone complete repo every time, as it takes a long time - allow an update to work
 
 
 # init, init-ci-repo, update-ci-repo, generate-changelog tasks
@@ -37,6 +36,11 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 # init-ci-repo  task
 
 . allow task to set up username and email automatically, and also to test push to upstream
+
+
+# init-dist task
+
+. recover the jenkins build number from jenking (is it possible? we did not tag it yet...)
 
 
 # Windows Web Application Gallery / Web Platform Installer package
