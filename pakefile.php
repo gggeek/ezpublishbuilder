@@ -234,8 +234,6 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
             // 2. pull and move to correct branch
             $repo = new pakeGit( $rootpath );
-            /// @todo test that the pull does not fail
-            $repo->pull();
 
             /// @todo test that the branch switch does not fail
             if ( @$opts['git']['branch'] != '' )
@@ -246,6 +244,9 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
             {
                 $repo->checkout( 'master' );
             }
+
+            /// @todo test that the pull does not fail
+            $repo->pull();
 
         /// @todo check if given revision exists in git repo? We'll get an empty changelof if it does not...
 
@@ -350,7 +351,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args );
     $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
-    // generate changelog diff
+    // 0. generate changelog diff
     $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
     // get absolute path to build dir
     $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( $opts['build']['dir'] . '/source' );
@@ -363,20 +364,41 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     /// @todo test for errors
     exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix --staged -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
 
+    /// unstage the file
+    /// @todo test for errors
+    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git reset HEAD --' );
+
     // start work on the ci repo:
 
-    // 1. update it
+    // 1. update ci repo
     $cipath = $opts['ci-repo']['local-path'];
+
+    // test that we're on the good git
+    exec( 'cd ' . escapeshellarg( $cipath ) . " && git remote -v", $remotesArray, $ok );
+    $found = false;
+    foreach( $remotesArray as $remote )
+    {
+        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
+        {
+            // q: should we check that remote is called 'origin'? since we later call 'pull' without params...
+            $found = true;
+        }
+    }
+    if ( !$found )
+    {
+        throw new pakeException( "Build dir $cipath does nto seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
+    }
+
     $repo = new pakeGit( $cipath );
-    /// @todo test that we're on the good git
-    /// @todo test that the pull does not fail
-    $repo->pull();
 
     if ( $opts['ci-repo']['git-branch'] != '' )
     {
         /// @todo test that the branch switch does not fail
         $repo->checkout( $opts['ci-repo']['git-branch'] );
     }
+
+    /// @todo test that the pull does not fail
+    $repo->pull();
 
     if ( $opts['ci-repo']['git-path'] != '' )
     {
@@ -423,7 +445,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
-    // missing command in pakegit
+    /// @todo test for errors
     exec( 'cd ' . escapeshellarg( $cipath ) . ' && git push', $ouput, $return );
 }
 
@@ -749,7 +771,7 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.2-dev';
+    static $version = '0.2';
     static $min_pake_version = '1.6.1';
     static $projname = 'ezpublish';
 
