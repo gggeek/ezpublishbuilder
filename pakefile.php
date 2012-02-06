@@ -211,7 +211,43 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
     if ( $previousrev != '' )
     {
-        /// @todo check if given revision exists in git repo
+        pake_echo( "Updating eZ Publish sources from git" );
+
+        /// @todo move all of this in a specific function to be reused
+
+            // 1. check if build dir is correctly linked to source git repo
+            /// @todo test for git errors
+            exec( 'cd ' . escapeshellarg( $rootpath ) . " && git remote -v", $remotesArray, $ok );
+            $found = false;
+            foreach( $remotesArray as $remote )
+            {
+                if ( strpos( $remote, $opts['git']['url'] . ' (fetch)' ) !== false )
+                {
+                    // q: should we check that remote is called 'origin'? since we later call 'pull' without params...
+                    $found = true;
+                }
+            }
+            if ( !$found )
+            {
+                throw new pakeException( "Build dir $rootpath does nto seem to be linked to git repo {$opts['git']['url']}" );
+            }
+
+            // 2. pull and move to correct branch
+            $repo = new pakeGit( $rootpath );
+            /// @todo test that the pull does not fail
+            $repo->pull();
+
+            /// @todo test that the branch switch does not fail
+            if ( @$opts['git']['branch'] != '' )
+            {
+                $repo->checkout( $opts['git']['branch'] );
+            }
+            else
+            {
+                $repo->checkout( 'master' );
+            }
+
+        /// @todo check if given revision exists in git repo? We'll get an empty changelof if it does not...
 
         // pake's own git class does not allow usage of 'git log' yet
         /// @todo test for git errors
