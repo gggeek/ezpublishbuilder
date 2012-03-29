@@ -215,21 +215,22 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
         /// @todo move all of this in a specific function to be reused
 
+            $git = escapeshellarg(pake_which('git'));
+
             // 1. check if build dir is correctly linked to source git repo
-            /// @todo test for git errors
-            exec( 'cd ' . escapeshellarg( $rootpath ) . " && git remote -v", $remotesArray, $ok );
-            $found = false;
+            $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
+            $originf = false;
             foreach( $remotesArray as $remote )
             {
                 if ( strpos( $remote, $opts['git']['url'] . ' (fetch)' ) !== false )
                 {
-                    // q: should we check that remote is called 'origin'? since we later call 'pull' without params...
-                    $found = true;
+                    $originf = explode( ' ', $remote );
+                    $originf = $originf[0];
                 }
             }
-            if ( !$found )
+            if ( !$originf )
             {
-                throw new pakeException( "Build dir $rootpath does nto seem to be linked to git repo {$opts['git']['url']}" );
+                throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['git']['url']}" );
             }
 
             // 2. pull and move to correct branch
@@ -251,8 +252,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         /// @todo check if given revision exists in git repo? We'll get an empty changelof if it does not...
 
         // pake's own git class does not allow usage of 'git log' yet
-        /// @todo test for git errors
-        exec( 'cd ' . escapeshellarg( $rootpath ) . " && git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD", $changelogArray, $ok );
+        $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
         $changelogArray = array_map( 'trim', $changelogArray );
         $changelogText = implode( "\n", $changelogArray );
@@ -358,15 +358,14 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
-    /// @todo test for errors
-    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git add ' . escapeshellarg( $changelogdir ), $out, $return );
+    $git = escapeshellarg(pake_which('git'));
 
-    /// @todo test for errors
-    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git diff --no-prefix --staged -- ' . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ), $out, $return );
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
+
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
 
     /// unstage the file
-    /// @todo test for errors
-    exec( 'cd ' . escapeshellarg( $rootpath ) . ' && git reset HEAD --' );
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
 
     // start work on the ci repo:
 
@@ -374,19 +373,26 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $cipath = $opts['ci-repo']['local-path'];
 
     // test that we're on the good git
-    exec( 'cd ' . escapeshellarg( $cipath ) . " && git remote -v", $remotesArray, $ok );
-    $found = false;
+    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
+    $originp = false;
+    $originf = false;
+
     foreach( $remotesArray as $remote )
     {
+        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
+        {
+            $originp = explode( ' ', $remote );
+            $originp = $origin[0];
+        }
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
         {
-            // q: should we check that remote is called 'origin'? since we later call 'pull' without params...
-            $found = true;
+            $originf = explode( ' ', $remote );
+            $originf = $origin[0];
         }
     }
-    if ( !$found )
+    if ( !$originp || !$originf )
     {
-        throw new pakeException( "Build dir $cipath does nto seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
+        throw new pakeException( "Build dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
     }
 
     $repo = new pakeGit( $cipath );
@@ -403,6 +409,11 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     if ( $opts['ci-repo']['git-path'] != '' )
     {
         $cipath .= '/' . $opts['ci-repo']['git-path'];
+        $localcipath = $opts['ci-repo']['git-path'] . '/';
+    }
+    else
+    {
+        $localcipath = '';
     }
 
     // 2. update 0002_2011_11_patch_fix_version.diff file
@@ -415,7 +426,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         '/^\+ +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
         '/^\+ +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
-    $repo->add( array( 'patches/0002_2011_11_patch_fix_version.diff' ) );
+    $repo->add( array( $localcipath . 'patches/patches/0002_2011_11_patch_fix_version.diff' ) );
 
     // 3. add new changelog file
     /// calculate sequence nr.
@@ -433,7 +444,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $seqnr = str_pad( (  $max + 1 ), 4, '0', STR_PAD_LEFT );
     $newdifffile = $seqnr .'_' . str_replace( '.', '_', $opts['version']['alias'] ) . '_patch_fix_changelog.diff';
     pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
-    $repo->add( array( 'patches/' . $newdifffile ) );
+    $repo->add( array( $localcipath . 'patches/' . $newdifffile ) );
 
     // 4. update ezpublish-gpl.properties
     $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->in( $cipath . '/properties' );
@@ -441,12 +452,11 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         '/^ezp\.cp\.version\.major += +.+$/m' => "ezp.cp.version.major = {$opts['version']['major']}",
         '/^ezp\.cp\.version\.minor += +.+$/m' => "ezp.cp.version.minor = {$opts['version']['minor']}"
     ) );
-    $repo->add( array( 'properties/ezpublish-gpl.properties' ) );
+    $repo->add( array( $localcipath . 'properties/ezpublish-gpl.properties' ) );
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
-    /// @todo test for errors
-    exec( 'cd ' . escapeshellarg( $cipath ) . ' && git push', $ouput, $return );
+    pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git push $origin {$opts['ci-repo']['git-branch']}:{$opts['ci-repo']['git-branch']}" );
 }
 
 function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
@@ -581,7 +591,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     $rootpath = $opts['build']['dir'] . '/release';
     $zip->extract( $rootpath );
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
-    $currdir = $subdir[0];
+    $currdir = $currdir[0];
     $finaldir = $rootpath . '/' . eZPCPBuilder::getProjName();
     pake_rename( $currdir, $finaldir );
     pake_echo( "dir+         " . $finaldir );
@@ -771,7 +781,7 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.2';
+    static $version = '0.3-dev';
     static $min_pake_version = '1.6.1';
     static $projname = 'ezpublish';
 
