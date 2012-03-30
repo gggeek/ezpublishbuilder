@@ -358,7 +358,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
-    $git = escapeshellarg(pake_which('git'));
+    $git = escapeshellarg( pake_which( 'git' ) );
 
     pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
 
@@ -382,12 +382,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
         {
             $originp = explode( ' ', $remote );
-            $originp = $origin[0];
+            $originp = $originp[0];
         }
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
         {
             $originf = explode( ' ', $remote );
-            $originf = $origin[0];
+            $originf = $originf[0];
         }
     }
     if ( !$originp || !$originf )
@@ -426,7 +426,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         '/^\+ +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
         '/^\+ +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
-    $repo->add( array( $localcipath . 'patches/patches/0002_2011_11_patch_fix_version.diff' ) );
+    $repo->add( array( $localcipath . 'patches/0002_2011_11_patch_fix_version.diff' ) );
 
     // 3. add new changelog file
     /// calculate sequence nr.
@@ -574,7 +574,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
     if ( $fileurl == '' )
     {
-        pake_echo( "No artifacts aviable for build $buildnr" );
+        pake_echo( "No artifacts available for build $buildnr" );
         return;
     }
     // download and unzip the file
