@@ -4,7 +4,7 @@
  * @package    pake
  * @author     Fabien Potencier <fabien.potencier@symfony-project.com>
  * @copyright  2004-2005 Fabien Potencier <fabien.potencier@symfony-project.com>
- * @copyright  2010 Alexey Zakhlestin <indeyets@gmail.com>
+ * @copyright  2010–2012 Alexey Zakhlestin <indeyets@gmail.com>
  * @license    see the LICENSE file included in the distribution
  */
 
@@ -59,6 +59,11 @@ function pake_alias($alias, $name)
 function pake_desc($comment)
 {
   pakeTask::define_comment($comment);
+}
+
+function pake_help($help)
+{
+    pakeTask::define_help($help);
 }
 
 function pake_properties($property_file)
@@ -260,6 +265,31 @@ function pake_replace_tokens_to_dir($arg, $src_dir, $target_dir, $begin_token, $
 function pake_replace_tokens($arg, $target_dir, $begin_token, $end_token, $tokens)
 {
     pake_replace_tokens_to_dir($arg, $target_dir, $target_dir, $begin_token, $end_token, $tokens);
+}
+
+function pake_replace_regexp_to_dir($arg, $src_dir, $target_dir, $regexps)
+{
+    $files = pakeFinder::get_files_from_argument($arg, $src_dir, true);
+
+    foreach ($files as $file)
+    {
+        $replaced = false;
+        $content = pake_read_file($src_dir.'/'.$file);
+        foreach ($regexps as $key => $value)
+        {
+            $content = preg_replace($key, $value, $content, -1, $count);
+            if ($count) $replaced = true;
+        }
+
+        pake_echo_action('tokens', $target_dir.DIRECTORY_SEPARATOR.$file);
+
+        file_put_contents($target_dir.DIRECTORY_SEPARATOR.$file, $content);
+    }
+}
+
+function pake_replace_regexp($arg, $target_dir, $regexps)
+{
+    pake_replace_regexp_to_dir($arg, $target_dir, $target_dir, $regexps);
 }
 
 function pake_symlink($origin_dir, $target_dir, $copy_on_windows = false)

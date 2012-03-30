@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://pear.php.net/dtd/package-2.1" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.1" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.1 http://pear.php.net/dtd/package-2.1.xsd">
     <name>pake</name>
-    <channel>pear.indeyets.pp.ru</channel>
+    <channel>pear.indeyets.ru</channel>
     <summary>PHP automation tool with capabilities similar to make.</summary>
     <description>
         Pake is a command line utility for executing predefined tasks, inspired by make. It is written in PHP and the tasks are also described in PHP. 
@@ -27,15 +27,12 @@
         <api>1.6.0</api>
     </version>
     <stability>
-        <release>stable</release>
+        <release>beta</release>
         <api>stable</api>
     </stability>
     <license uri="http://www.milkfarmsoft.com/bsd.php">BSD license</license>
     <notes>
-        - fixed PEAR-package format. should be installable via PEAR2/Pyrus now
-        - pakeMySQL fixes (#6, #7)
-        - fixed typo in pake_superuser_sh (#8)
-        - pakePearTask properly detects verbosity setting
+        -
     </notes>
 
     <contents>
@@ -157,6 +154,56 @@
 
     <changelog>
         <release>
+            <date>2011-09-13</date>
+            <version>
+                <release>1.6.3</release>
+                <api>1.6.0</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <license uri="http://www.milkfarmsoft.com/bsd.php">BSD license</license>
+            <notes>
+                - compatibility with SimpleTest 1.1 api
+                - moved PEAR-channel to new domain
+            </notes>
+        </release>
+
+        <release>
+            <date>2011-03-29</date>
+            <version>
+                <release>1.6.2</release>
+                <api>1.6.0</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <license uri="http://www.milkfarmsoft.com/bsd.php">BSD license</license>
+            <notes>
+                - more safety checks
+            </notes>
+        </release>
+        <release>
+            <date>2011-02-24</date>
+            <version>
+                <release>1.6.1</release>
+                <api>1.6.0</api>
+            </version>
+            <stability>
+                <release>stable</release>
+                <api>stable</api>
+            </stability>
+            <license uri="http://www.milkfarmsoft.com/bsd.php">BSD license</license>
+            <notes>
+                - fixed PEAR-package format. should be installable via PEAR2/Pyrus now
+                - pakeMySQL fixes (#6, #7)
+                - fixed typo in pake_superuser_sh (#8)
+                - pakePearTask properly detects verbosity setting
+            </notes>
+        </release>
+        <release>
             <date>2011-01-02</date>
             <version>
                 <release>1.6.0</release>
@@ -188,7 +235,7 @@
                  - in install_pear_package: update channel + upgrade package by default (can be disabled)
                  - git does not respect --work-tree in some commands. adding workaround
                  - support for optional explicit remote/branch parameters in pakeGit::pull()
-             </notes>
+            </notes>
         </release>
         <release>
             <date>2010-12-17</date>

@@ -1,19 +1,18 @@
 <?php
 /**
-* eZPublishBuilder pakefile:
-* a script to build & package the eZ Publish Community Project.
-*
-* Needs the Pake tool to run: https://github.com/indeyets/pake/wiki
-* It can bootstrap, by downloading all required components from the web
-*
-* The steps involved in the build process are described here:
-* https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB
-*
-* @author    G. Giunta
-* @copyright (C) G. Giunta 2011-2012
-* @license   code licensed under the GNU GPL 2.0: see README file
-* @version   $Id$
-*/
+ * eZPublishBuilder pakefile:
+ * a script to build & package the eZ Publish Community Project.
+ *
+ * Needs the Pake tool to run: https://github.com/indeyets/pake/wiki
+ * It can bootstrap, by downloading all required components from the web
+ *
+ * The steps involved in the build process are described here:
+ * https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB
+ *
+ * @author    G. Giunta
+ * @copyright (C) G. Giunta 2011-2012
+ * @license   code licensed under the GNU GPL 2.0: see README file
+ */
 
 // too smart for your own good: allow this script to be gotten off web servers in source form
 if ( isset( $_GET['show'] ) && $_GET['show'] == 'source' )
@@ -51,11 +50,17 @@ if ( !function_exists( 'run_default' ) )
 
 // definition of the pake tasks
 
+/**
+ * Shows help message
+ */
 function run_default()
 {
-    pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: php pakefile.php --tasks to learn more about available tasks." );
+    pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: \"php pakefile.php --tasks\" to learn more about available tasks or \"php pakefile.php help\" for more information." );
 }
 
+/**
+ * Shows the properties for this build file
+ */
 function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -63,9 +68,9 @@ function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
-* Downloads eZP from its source repository, ...
-* @todo add a dependency on a check-updates task that updates script itself?
-*/
+ * Downloads eZP from its source repository
+ * @todo add a dependency on a check-updates task that updates script itself?
+ */
 function run_init( $task=null, $args=array(), $cliopts=array() )
 {
     $skip_init = @$cliopts['skip-init'];
@@ -103,7 +108,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Downloads the CI repo from its source repository
+ * Downloads the CI repo sources from git (needs to be run only once)
  */
 function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
@@ -133,18 +138,21 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
-* We rely on the pake dependency system to do the real stuff
-* (run pake -P to see tasks included in this one)
-*/
+ * Builds the cms; options: --skip-init, --skip-changelog-pause, --skip-before-jenkins-pause.
+ *
+ * We rely on the pake dependency system to do the real stuff
+ * (run pake -P to see tasks included in this one)
+ */
 function run_build( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
 /**
-* Generates a changelog file based on git commit logs.
-* The generated file is placed in the correct folder within doc/changelogs.
-* It should be reviewed/edited by hand, then committed with the task "update-ci-repo".
-*/
+ * Generates a changelog file based on git commit logs.
+ *
+ * The generated file is placed in the correct folder within doc/changelogs.
+ * It should be reviewed/edited by hand, then committed with the task "update-ci-repo".
+ */
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -323,7 +331,11 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
     }
 }
 
-/// @todo
+/**
+ * Generate changelog files that can be copied and pasted into ezxml rich text; NOT IMPLEMENTED YET
+ *
+ * @todo
+ */
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -337,11 +349,12 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
 }
 
 /**
-* This tasks updates files in the "ci" git repository.
-* The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
-* It holds, amongs other things, patch files that are applied in order to build the
-* CP version instead of the Enterprise one
-*/
+ * Commits changelog to the "ci" git repo and updates in there other files holding version-related infos.
+ *
+ * The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
+ * It holds, amongs other things, patch files that are applied in order to build the
+ * CP version instead of the Enterprise one
+ */
 function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
     // needed on windows - unless a recent git version is used (1.7.9 is ok)
@@ -472,6 +485,9 @@ function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
     }
 }
 
+/**
+ * Executes the build project on Jenkins
+ */
 function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -528,6 +544,8 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+ * Creates different versions of the build tarballs.
+ *
  * We rely on the pake dependency system to do the real stuff
  * (run pake -P to see tasks included in this one)
  */
@@ -535,6 +553,9 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
+/**
+ * Downloads the build tarballs from Jenkins for further repackaging; options: --build=<buildnr>
+ */
 function run_dist_init( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -597,6 +618,9 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_echo( "dir+         " . $finaldir );
 }
 
+/**
+ * Creates the MS WPI
+ */
 function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -659,6 +683,8 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+ * Builds the cms and generates the tarballs.
+ *
  * We rely on the pake dependency system to do the real stuff
  * (run pake -P to see tasks included in this one)
  */
@@ -666,12 +692,18 @@ function run_all( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
+/**
+ * Removes the build/ directory
+ */
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
     pake_remove_dir( $opts['build']['dir'] );
 }
 
+/**
+ * Removes the dist/ directory
+ */
 function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
@@ -679,6 +711,8 @@ function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+ * Removes the build/ and dist/ directories.
+ *
  * We rely on the pake dependency system to do the real stuff
  * (run pake -P to see tasks included in this one)
  */
@@ -686,6 +720,9 @@ function run_clean_all( $task=null, $args=array(), $cliopts=array() )
 {
 }
 
+/**
+ * Checks if a newer version of the tool is available online
+ */
 function run_tool_upgrade_check( $task=null, $args=array(), $cliopts=array() )
 {
     $latest = eZPCPBuilder::latestVersion();
@@ -717,7 +754,11 @@ function run_tool_upgrade_check( $task=null, $args=array(), $cliopts=array() )
     }
 }
 
-/// @todo add a backup enable/disable option
+/**
+ *  Upgrades to the latest version of the tool available online.
+ *
+ * @todo add a backup enable/disable option
+ */
 function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
 {
     $latest = eZPCPBuilder::latestVersion( true );
@@ -742,36 +783,6 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
     }
 }
 
-function run_help( $task=null, $args=array(), $cliopts=array() )
-{
-    if ( count( $args ) == 0 || $args[0] == 'help' )
-    {
-        echo "To get detailed description of a taks, run: pake help \$task\n";
-        echo "To see list of available tasks, run: pake -T\n";
-        echo "To see list of tasks dependencies, run: pake -P\n";
-        echo "To see more available options, run: pake -H\n";
-    }
-    else
-    {
-        try
-        {
-            $task = pakeTask::get( $args[0] );
-            if ( isset( $GLOBALS['pake_longdesc'][$args[0]] ) && $GLOBALS['pake_longdesc'][$args[0]] != '' )
-            {
-                echo $GLOBALS['pake_longdesc'][$args[0]];
-            }
-            else
-            {
-                echo $task->get_comment();
-            }
-        }
-        catch( exception $e )
-        {
-            echo "The task '{$args[0]}' is not available";
-        }
-
-    }
-}
 /**
 * Class implementing the core logic for our pake tasks
 * @todo separate in another file?
@@ -782,7 +793,7 @@ class eZPCPBuilder
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
     static $version = '0.3-dev';
-    static $min_pake_version = '1.6.1';
+    static $min_pake_version = '1.6.3';
     static $projname = 'ezpublish';
 
     // leftover from ezextensionbuilder
@@ -1069,58 +1080,6 @@ class eZPCPBuilder
 
 }
 
-// The following two functions we use, and submitted for inclusion in pake.
-// While we wait for acceptance, we define them here...
-if ( !function_exists( 'pake_replace_regexp_to_dir' ) )
-{
-
-function pake_replace_regexp_to_dir($arg, $src_dir, $target_dir, $regexps, $limit=-1)
-{
-    $files = pakeFinder::get_files_from_argument($arg, $src_dir, true);
-
-    foreach ($files as $file)
-    {
-        $replaced = false;
-        $content = pake_read_file($src_dir.'/'.$file);
-        foreach ($regexps as $key => $value)
-        {
-            $content = preg_replace($key, $value, $content, $limit, $count);
-            if ($count) $replaced = true;
-        }
-
-        pake_echo_action('regexp', $target_dir.DIRECTORY_SEPARATOR.$file);
-
-        file_put_contents($target_dir.DIRECTORY_SEPARATOR.$file, $content);
-    }
-}
-
-function pake_replace_regexp($arg, $target_dir, $regexps, $limit=-1)
-{
-    pake_replace_regexp_to_dir($arg, $target_dir, $target_dir, $regexps, $limit);
-}
-
-}
-
-if ( !function_exists( 'pake_longdesc' ) )
-{
-    $GLOBALS['pake_longdesc'] = array();
-    /**
-     * Allows the user to define a long description for tasks, besides what is
-     * done via pake_desk.
-     * @param, string $desc If $description is empty, phpdoc for the function is used
-     */
-    function pake_longdesc( $task, $desc='' )
-    {
-        $func = 'run_' . str_replace( '-', '_', $task );
-        if ( $desc == '' && function_exists( $func ) )
-        {
-            $func = new ReflectionFunction( $func );
-            $desc = $func->getDocComment();
-        }
-        $GLOBALS['pake_longdesc'][$task] = $desc;
-    }
-}
-
 
 // *** Live code starts here ***
 
@@ -1195,68 +1154,45 @@ if ( !( isset( $GLOBALS['internal_pake'] ) && $GLOBALS['internal_pake'] ) )
     pake_require_version( eZPCPBuilder::$min_pake_version );
 }
 
-pake_desc( 'Shows help message' );
 pake_task( 'default' );
 
-pake_desc( 'Shows the properties for this build file' );
 pake_task( 'show-properties' );
 
-pake_desc( 'Downloads eZ sources from git' );
 pake_task( 'init' );
 
-pake_desc( 'Downloads the CI repo sources from git (needs to be run only once)' );
 pake_task( 'init-ci-repo' );
 
-pake_desc( 'Builds the cms. Options: --skip-init, --skip-changelog-pause, --skip-before-jenkins-pause' );
 pake_task( 'build', 'init', 'generate-changelog', 'wait-for-changelog', 'generate-html-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build' );
 
-pake_desc( 'Generates a changelog file from git logs' );
 pake_task( 'generate-changelog' );
 
-pake_desc( 'Dummy task. Asks a question to the user and waits for an answer...' );
 pake_task( 'wait-for-changelog' );
 
-pake_desc( 'Generate changelog files that can be copied and pasted into ezxml rich text' );
 pake_task( 'generate-html-changelog' );
 
-pake_desc( 'Commits changelog to the "ci" git repo and updates in there other files holding version-related infos' );
 pake_task( 'update-ci-repo' );
 
-pake_desc( 'Dummy task. Asks a question to the user and waits for an answer...' );
 pake_task( 'wait-for-continue' );
 
-pake_desc( 'Executes the build projects on Jenkins' );
 pake_task( 'run-jenkins-build' );
 
-pake_desc( 'Downloads the build tarballs from Jenkins for further repackaging. Options: --build=<buildnr>' );
 pake_task( 'dist-init' );
 
-pake_desc( 'Creates the MS WPI' );
 pake_task( 'dist-wpi' );
 
-pake_desc( 'Creates different versions of the build tarballs' );
 pake_task( 'dist', 'dist-init', 'dist-wpi' );
 
-pake_desc( 'Builds the cms and generates the tarballs' );
 pake_task( 'all', 'build', 'dist' );
 
-pake_desc( 'Removes the build/ directory' );
 pake_task( 'clean' );
 
-pake_desc( 'Removes the dist/ directory' );
 pake_task( 'dist-clean' );
 
-pake_desc( 'Removes the build/ and dist/ directories' );
 pake_task( 'clean-all', 'clean', 'dist-clean' );
 
-pake_desc( 'Checks if a newer version of the tool is available online' );
 pake_task( 'tool-upgrade-check' );
 
-pake_desc( 'Upgrades to the latest version of the tool available online' );
 pake_task( 'tool-upgrade' );
-
-pake_desc( 'Returns detailed description of existing tasks. Usage: php pakefile.php help $task' );
-pake_task( 'help' );
 
 }
 
