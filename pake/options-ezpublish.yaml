@@ -5,7 +5,7 @@ ezpublish:
 version:
     # the version number set here can be overridden via command line arguments
     major: 2012
-    minor: 3
+    minor: 5
     release: 0
 
     previous:
@@ -59,7 +59,7 @@ ci-repo:
 # the server running the eZP "main" build process
 jenkins:
     url: http://ci.ez.no
-    job: ezpublish-full-git
+    job: ezpublish-full-community
 
 # unused yet...
 #files:
