@@ -70,13 +70,100 @@ class pakeGit
         return $this;
     }
 
+    public function push($remote = null, $branch = null)
+    {
+        $cmd = 'push -q';
+
+        if (null !== $remote) {
+            $cmd .= ' '.escapeshellarg($remote);
+
+            if (null !== $branch) {
+                $cmd .= ' '.escapeshellarg($branch);
+            }
+        }
+
+        $this->git_run($cmd);
+
+        return $this;
+    }
+
+    public function logLast($number)
+    {
+        if (!is_numeric($number)) {
+            throw new pakeException('pakeGit::logLast() takes number, as parameter');
+        }
+
+        return $this->log('-'.$number);
+    }
+
+    public function logSince($commit_hash, $till = 'HEAD')
+    {
+        return $this->log($commit_hash.'..'.$till);
+    }
+
+    public function log($suffix)
+    {
+        $cmd = 'log --format="%H%x00%an%x00%ae%x00%at%x00%s"'.' '.$suffix;
+        $result = $this->git_run($cmd);
+
+        $data = array();
+        foreach (preg_split('/(\r\n|\n\r|\r|\n)/', $result) as $line) {
+            $line = trim($line);
+            if (strlen($line) == 0) {
+                continue;
+            }
+
+            $pieces = explode(chr(0), $line);
+
+            $data[] = array(
+                'hash' => $pieces[0],
+                'author' => array('name' => $pieces[1], 'email' => $pieces[2]),
+                'time' => new DateTime('@'.$pieces[3]),
+                'message' => $pieces[4]
+            );
+        }
+
+        return $data;
+    }
+
+    public function remotes()
+    {
+        $result = $this->git_run('remote -v');
+
+        $data = array();
+        foreach (preg_split('/(\r\n|\n\r|\r|\n)/', $result) as $line) {
+            $line = trim($line);
+            if (strlen($line) == 0) {
+                continue;
+            }
+
+            list($name, $tail) = explode("\t", $line, 2);
+
+            if (strpos($tail, '(fetch)') == strlen($tail) - 7) {
+                $data[$name]['fetch'] = substr($tail, 0, -7);
+            } elseif (strpos($tail, '(push)') == strlen($tail) - 6) {
+                $data[$name]['push'] = substr($tail, 0, -6);
+            }
+        }
+
+        return $data;
+    }
+
     // helpers
     public static function isRepository($path)
     {
         return is_dir($path.'/.git');
     }
 
-    private function git_run($command)
+    /**
+     * Run git-command in context of repository
+     *
+     * This method is useful for implementing some custom command, not implemented by pake.
+     * In cases when pake has native support for command, please use it, as it will provide better compatibility
+     *
+     * @param $command
+     */
+    public function git_run($command)
     {
         $git = escapeshellarg(pake_which('git'));
 
@@ -90,12 +177,12 @@ class pakeGit
         }
 
         try {
-            pake_sh($cmd);
+            return pake_sh($cmd);
         } catch (pakeException $e) {
             if (strpos($e->getMessage(), 'cannot be used without a working tree') !== false) {
                 pake_echo_error('Your version of git is buggy. Using workaround');
                 self::$needs_work_tree_workaround = true;
-                $this->git_run($command);
+                return $this->git_run($command);
             }
         }
     }
@@ -115,10 +202,10 @@ class pakeGit
         $cmd = escapeshellarg(pake_which('git')).' init -q';
 
         if (null !== $template_path) {
-            $cmd .= ' '.escapeshellarg('--template='.$template_path);
+            $cmd .= ' --template='.escapeshellarg($template_path);
         }
 
-        $cmd .= ' '.escapeshellarg('--shared='.$shared);
+        $cmd .= ' --shared='.escapeshellarg($shared);
 
         $cwd = getcwd();
         chdir($path);

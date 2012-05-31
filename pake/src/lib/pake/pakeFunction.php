@@ -197,25 +197,30 @@ function pake_mirror($arg, $origin_dir, $target_dir, $options = array())
   }
 }
 
+/**
+ * Use pake_remove for smarter operations
+ */
+function pake_unlink($file)
+{
+    if (!file_exists($file))
+        return;
+
+    if (is_dir($file) && !is_link($file)) {
+        pake_echo_action('dir-', $file);
+        rmdir($file);
+    } else {
+        pake_echo_action(is_link($file) ? 'link-' : 'file-', $file);
+        unlink($file);
+    }
+}
+
 function pake_remove($arg, $target_dir)
 {
-  $files = array_reverse(pakeFinder::get_files_from_argument($arg, $target_dir));
+    $files = array_reverse(pakeFinder::get_files_from_argument($arg, $target_dir));
 
-  foreach ($files as $file)
-  {
-    if (is_dir($file) && !is_link($file))
-    {
-      pake_echo_action('dir-', $file);
-
-      rmdir($file);
+    foreach ($files as $file) {
+        pake_unlink($file);
     }
-    else
-    {
-      pake_echo_action(is_link($file) ? 'link-' : 'file-', $file);
-
-      unlink($file);
-    }
-  }
 }
 
 // shortcut for common operation
@@ -339,20 +344,16 @@ function pake_chmod($arg, $target_dir, $mode, $umask = 0000)
 
 function pake_which($cmd)
 {
-    if (!isset($_SERVER['PATH']))
-    {
-        // win cli
-        if (!isset($_SERVER['Path']))
-        {
-            throw new pakeException('PATH environment variable is not set' );
-        }
-        else
-        {
-            $_SERVER['PATH'] = $_SERVER['Path'];
-        }
+    $is_windows = (strtolower(substr(PHP_OS, 0, 3)) == 'win');
+
+    $paths = explode(PATH_SEPARATOR, getenv('PATH'));
+    $win_executable_extensions = array();
+
+    if ($is_windows) {
+        $win_executable_extensions = explode(';', getenv('PATHEXT'));
     }
 
-    $paths = explode(PATH_SEPARATOR, $_SERVER['PATH']);
+    $extension = pathinfo($cmd, PATHINFO_EXTENSION);
 
     foreach ($paths as $path) {
         if (strlen($path) === 0) {
@@ -360,26 +361,21 @@ function pake_which($cmd)
         }
 
         $test = $path.'/'.$cmd;
-        // nb: on win, executable bit does not need to be set
-        if (file_exists($test) and (is_executable($test) || strtolower(substr(PHP_OS, 0, 3)) == 'win')) {
-            return $test;
-        }
-        if ( strtolower(substr(PHP_OS, 0, 3)) == 'win') {
-            /// @todo we could probbaly get the list of known command suffixes from env, too
-            $test .= '.exe';
-            if (file_exists($test)) {
-                return $test;
-            }
-            $test = substr( $test, 0, -4 ) . '.cmd';
-            if (file_exists($test))  {
-                return $test;
-            }
-            $test = substr( $test, 0, -4 ) . '.bat';
-            if (file_exists($test)) {
-                return $test;
-            }
-        }
 
+        if ($is_windows and in_array($extension, $win_executable_extensions)) {
+            // Windows
+            foreach ($win_executable_extensions as $suffix) {
+                $full_name = $test.$suffix;
+                if (file_exists($full_name) and !is_dir($full_name)) {
+                    return $full_name;
+                }
+            }
+        } else {
+            // UNIX-like system
+            if (file_exists($test) and !is_dir($test) and is_executable($test)) {
+                return $test;
+            }
+        }
     }
 
     throw new pakeException('Can not find "'.$cmd.'" executable');

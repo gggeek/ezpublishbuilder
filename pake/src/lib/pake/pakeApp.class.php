@@ -22,7 +22,7 @@
  */
 class pakeApp
 {
-    const VERSION = '1.6.3';
+    const VERSION = '1.1.DEV';
     const QUIT_INTERACTIVE = 0xDD;
 
     public static $MAX_LINE_SIZE = 78;
@@ -83,6 +83,10 @@ class pakeApp
         self::$PROPERTIES = $properties;
     }
 
+    /**
+     * @static
+     * @return pakeApp
+     */
     public static function get_instance()
     {
         if (!self::$instance)
@@ -516,8 +520,8 @@ class pakeApp
     /**
      * show documentation; use "pake help taskname" to see detailed documentation on task
      *
-     * @param string $task
-     * @param string $args
+     * @param string $task 
+     * @param string $args 
      * @return bool
      * @author Alexey Zakhlestin
      */
