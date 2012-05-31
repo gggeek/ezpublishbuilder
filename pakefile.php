@@ -430,7 +430,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     }
     catch( Exception $e )
     {
-        throw new pakeException( "The diff file {$files[0]} does not apply correctly, build will fail. Please fix it. Error details:\n" . $e->getMessage() );
+        throw new pakeException( "The diff file {$files[0]} does not apply correctly, build will fail. Please fix it.\n Also remember to fix the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $e->getMessage() );
     }
 
     pake_replace_regexp( $files, $cipath . '/patches', array(
@@ -516,10 +516,15 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     $out = pake_read_file( $buildstarturl );
     // "scrape" the number of the currently executing build, and hope it is the one we triggered.
     // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
-    $ok = preg_match( '/<a href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
+    $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
     if ( !$ok )
     {
-        throw new pakeException( "Build not started or unknown error" );
+        // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
+        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['job'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
+        if ( !$ok )
+        {
+            throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
+        }
     }
     $buildnr = $matches[1];
 
@@ -619,7 +624,8 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
         throw new pakeException( "Missing Zeta Components: cannot unzip downloaded file. Use the environment var PHP_CLASSPATH" );
     }
     // clean up the 'release' dir
-    pake_remove_dir( $opts['dist']['dir'] );
+    /// @todo this method is a bit slow, should find a faster one
+    pake_remove_dir( $opts['build']['dir'] . '/release' );
     // and unzip eZ into it - in a folder with a specific name
     $zip = ezcArchive::open( $filename, ezcArchive::ZIP );
     $rootpath = $opts['build']['dir'] . '/release';
