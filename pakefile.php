@@ -364,26 +364,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args );
     $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
-    // 0. generate changelog diff
-    $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
-    // get absolute path to build dir
-    $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( $opts['build']['dir'] . '/source' );
-    $absrootpath = dirname( $absrootpath[0] );
-    $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
-
-    $git = escapeshellarg( pake_which( 'git' ) );
-
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
-
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
-
-    /// unstage the file
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
-
     // start work on the ci repo:
 
     // 1. update ci repo
     $cipath = $opts['ci-repo']['local-path'];
+
+    $git = escapeshellarg( pake_which( 'git' ) );
 
     // test that we're on the good git
     $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
@@ -431,15 +417,42 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 2. update 0002_2011_11_patch_fix_version.diff file
 
-    /// @todo if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply
-    ///       we need thus to regenerate one (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
-
+    //pake_echo( "Testing applicability of 0002_2011_11_patch_fix_version.diff file..." );
     $files = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+
+    // if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply
+    // we need thus to regenerate one (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
+    // for now, we just test that it will apply cleanly and leave the fixing to the editor
+    $patch = escapeshellarg( pake_which( 'patch' ) );
+    try
+    {
+        $patchResult = pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $files[0] );
+    }
+    catch( Exception $e )
+    {
+        throw new pakeException( "The diff file {$files[0]} does not apply correctly, build will fail. Please fix it. Error details:\n" . $e->getMessage() );
+    }
+
     pake_replace_regexp( $files, $cipath . '/patches', array(
         '/^\+ +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
         '/^\+ +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
     $repo->add( array( $localcipath . 'patches/0002_2011_11_patch_fix_version.diff' ) );
+
+    // 3. generate changelog diff
+
+    $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
+    // get absolute path to build dir
+    $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( $opts['build']['dir'] . '/source' );
+    $absrootpath = dirname( $absrootpath[0] );
+    $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
+
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
+
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
+
+    /// unstage the file
+    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
 
     // 3. add new changelog file
     /// calculate sequence nr.
@@ -469,7 +482,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
-    pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git push $origin {$opts['ci-repo']['git-branch']}:{$opts['ci-repo']['git-branch']}" );
+    pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git push $originp {$opts['ci-repo']['git-branch']}:{$opts['ci-repo']['git-branch']}" );
 }
 
 function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
