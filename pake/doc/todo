@@ -20,12 +20,11 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 . all pake tasks: download, build, ...
   - replace version nr. in install dir ? (nb: not for ms web app package) (???)
 
-. upgrade bundled pake to rev. 1.6.3 or later
-
 
 # update-ci-repo task
 
-. allow task to work even after an eZ Ent. version upgrade
+. give user chance to break after seing info about package repo url?
+. allow cript to run in --force mode, that avoids waiting for user input
 
 
 # init, init-ci-repo, update-ci-repo, generate-changelog tasks
@@ -35,12 +34,12 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # init-ci-repo  task
 
-. allow task to set up username and email automatically, and also to test push to upstream
+. allow task to set up username and email automatically for git, and also to test push to upstream
 
 
 # init-dist task
 
-. recover the jenkins build number from jenking (is it possible? we did not tag it yet...)
+. recover the jenkins build number from jenkins (is it possible? we did not tag it yet...)
 
 
 # Windows Web Application Gallery / Web Platform Installer package
@@ -88,7 +87,7 @@ http://learn.iis.net/page.aspx/761/provide-url-rewriting-functionality/
 . mail iis forums: how to test for presence of rewrite module? also how to test if mysqli is active? and is there a way to force install of mysql connector for .net?
   OK (except for mysqli extension...)
 
-. ez feat reqs:
+. ez pull reqs:
   - add web.config-RECOMMENDED (resync with latest .htaccess): #xxx
   - add commented rule for static cache
   - add commented rule for cluster
