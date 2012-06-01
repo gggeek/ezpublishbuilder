@@ -417,23 +417,101 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 2. update 0002_2011_11_patch_fix_version.diff file
 
-    //pake_echo( "Testing applicability of 0002_2011_11_patch_fix_version.diff file..." );
-    $files = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+    $files1 = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+    $files2 = pakeFinder::type( 'file' )->name( '0003_2011_11_patch_fix_package_repository.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+    /// @todo what if those files are gone?
+    $patchfile1 = $files1[0];
+    $patchfile2 = $files2[0];
 
-    // if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply
-    // we need thus to regenerate one (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
-    // for now, we just test that it will apply cleanly and leave the fixing to the editor
+    // if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply,
+    // and the '0003_2011_11_patch_fix_package_repository.diff' file will have to be altered as well
+    // we need thus to regenerate them (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
+
+    // 1st, we test that the current patch file will apply cleanly (if it does, we assume no new EE release)
     $patch = escapeshellarg( pake_which( 'patch' ) );
+    $patcherror = false;
     try
     {
-        $patchResult = pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $files[0] );
+        $patchResult = pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $patchfile1 );
     }
     catch( Exception $e )
     {
-        throw new pakeException( "The diff file {$files[0]} does not apply correctly, build will fail. Please fix it.\n Also remember to fix the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $e->getMessage() );
+        $patcherror = $e->getMessage();
     }
 
-    pake_replace_regexp( $files, $cipath . '/patches', array(
+    // then, we (try to) recover version info from existing patch files
+    $patch1 = file_get_contents( $patchfile1 );
+    $patch2 = file_get_contents( $patchfile2 );
+    if (
+        preg_match( '/^\- +const +VERSION_MAJOR += +(\d+);/m', $patch1, $m1 ) &&
+        preg_match( '/^\- +const +VERSION_MINOR += +(\d+);/m', $patch1, $m2 ) &&
+        preg_match( '/^\+RemotePackagesIndexURL=http:\/\/packages.ez.no\/ezpublish\/[^\/]+\/(.+)$/m', $patch2, $m3 )
+    )
+    {
+        $oldNextVersionMajor = $m1[1];
+        $oldNextVersionMinor = $m2[1];
+        $currentVersion = $m3[1];
+        // give some information to user
+        pake_echo( "Packages available during setup wizard execution for this CP build will be the ones from eZP $currentVersion" );
+        pake_echo( "The next build of eZ Publish EE is expected to be $oldNextVersionMajor.$oldNextVersionMinor" );
+
+        // last, we try automated fixing or abort
+        if ( $patcherror )
+        {
+            // try to gather enough information to fix automatically the patch files
+            $currfile = file_get_contents( $rootpath . '/lib/version.php' );
+            if (
+                preg_match( '/^\ +const +VERSION_MAJOR += +(\d+);/m', $currfile, $m1 ) &&
+                preg_match( '/^\ +const +VERSION_MINOR += +(\d+);/m', $currfile, $m2 ) )
+            {
+                $newNextVersionMajor = $m1[1];
+                $newNextVersionMinor = $m2[1];
+                if ( $newNextVersionMajor == $oldNextVersionMajor && $newNextVersionMinor == $oldNextVersionMinor )
+                {
+                    // patch does not apply but version number was not changed. Abort
+                    throw new pakeException( "The diff file $patchfile1 does not apply correctly, build will fail. Please fix it, commit and push.\n Also chek to fix if needed the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $patcherror );
+                }
+                pake_echo( "It seems that EE version $oldNextVersionMajor.$oldNextVersionMinor was released, next expected EE version is currently $newNextVersionMajor.$newNextVersionMinor" );
+                pake_echo( "The script can fix this automatically, or you will have to fix patch files by hand (at least 2 of them)" );
+                pake_echo( "Proposed changes:" );
+                pake_echo( "Packages available during setup wizard execution for this CP build will be the ones from eZP $oldNextVersionMajor.$oldNextVersionMinor.0" );
+                $ok = pake_input( "Do you want to continue with automatic fixing? [y/n]", 'n' );
+                if ( $ok != 'y' )
+                {
+                    throw new pakeException( "Please fix patch file by hand, commit and push.\nAlso remember to fix the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff" );
+                }
+                else
+                {
+                    pake_replace_regexp( $files1, $cipath . '/patches', array(
+                        '/^- +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = $newNextVersionMajor;",
+                        '/^- +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = $newNextVersionMinor;"
+                    ) );
+                    pake_replace_regexp( $files2, $cipath . '/patches', array(
+                        '/^\+RemotePackagesIndexURL=http:\/\/packages.ez.no\/ezpublish\/([^\/]+)\/.*$/m' => "+RemotePackagesIndexURL=http://packages.ez.no/ezpublish/$oldNextVersionMajor.$oldNextVersionMinor/$oldNextVersionMajor.$oldNextVersionMinor.0"
+                    ) );
+                }
+            }
+            else
+            {
+                throw new pakeException( "The diff file $patchfile1 does not apply correctly, build will fail. Please fix it, commit and push.\n Also remember to fix the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $patcherror );
+            }
+        }
+
+    }
+    else
+    {
+        if ( $patcherror )
+        {
+            throw new pakeException( "The diff file $patchfile1 does not apply correctly, build will fail. Please fix it, commit and push.\n Also remember to fix the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $patcherror );
+        }
+        else
+        {
+            /// @todo waht to do here? warn user and give him a chance to abort...
+        }
+    }
+
+    // finally, the changes which apply every time
+    pake_replace_regexp( $files1, $cipath . '/patches', array(
         '/^\+ +const +VERSION_MAJOR += +\d+;/m' => "+    const VERSION_MAJOR = {$opts['version']['major']};",
         '/^\+ +const +VERSION_MINOR += +\d+;/m' => "+    const VERSION_MINOR = {$opts['version']['minor']};"
     ) );
@@ -454,7 +532,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     /// unstage the file
     pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
 
-    // 3. add new changelog file
+    // 4. add new changelog file
     /// calculate sequence nr.
     $max = 0;
     $files = pakeFinder::type( 'file' )->maxdepth( 0 )->in( $cipath . '/patches' );
@@ -472,7 +550,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
     $repo->add( array( $localcipath . 'patches/' . $newdifffile ) );
 
-    // 4. update ezpublish-gpl.properties
+    // 5. update ezpublish-gpl.properties
     $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->in( $cipath . '/properties' );
     pake_replace_regexp( $files, $cipath . '/properties', array(
         '/^ezp\.cp\.version\.major += +.+$/m' => "ezp.cp.version.major = {$opts['version']['major']}",
@@ -553,7 +631,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 
     if ( is_array( $out ) && @$out['result'] == 'SUCCESS' )
     {
-        pake_echo( "Build succesful" );
+        pake_echo( "Build $buildnr succesful" );
     }
     else
     {
