@@ -93,7 +93,15 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Missing source repo option git:url in config file" );
         }
 
-        /// @todo test what happens if target dir is not empty?
+        // if target dir is not empty, force user to run a "clean"
+        if ( is_dir( $destdir ) )
+        {
+            $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
+            if ( count( $leftovers ) )
+            {
+                throw new pakeException( "Can not download eZ sources into directory $destdir because it is not empty. Please run task 'clean' to wipe it then retry" );
+            }
+        }
 
         /// @todo to make successive builds faster - if repo exists already just
         ///       update it
@@ -121,7 +129,15 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     pake_echo( 'Fetching sources from CI git repository' );
 
-    /// @todo test what happens if target dir is not empty?
+    // if target dir is not empty, force user to run a "clean"
+    if ( is_dir( $destdir ) )
+    {
+        $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
+        if ( count( $leftovers ) )
+        {
+            throw new pakeException( "Can not download CI repo into directory $destdir because it is not empty. Please run task clean-ci-repo to wipe it then retry" );
+        }
+    }
 
     $repo = pakeGit::clone_repository( $opts['ci-repo']['git-url'], $destdir );
     // q: is this really needed?
@@ -131,6 +147,7 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
     }
 
     /// @todo set up username and password in $opts['ci-repo']['git-branch']/.git/config
+    ///       from either config file or interactive mode
 
     pake_echo( "The CI git repo has been set up in $destdir\n" .
         "You should now set up properly your git user account and make sure it has\n".
@@ -223,7 +240,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
         /// @todo move all of this in a specific function to be reused
 
-            $git = escapeshellarg(pake_which('git'));
+            $git = escapeshellarg( pake_which( 'git' ) );
 
             // 1. check if build dir is correctly linked to source git repo
             $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
@@ -257,7 +274,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
             /// @todo test that the pull does not fail
             $repo->pull();
 
-        /// @todo check if given revision exists in git repo? We'll get an empty changelof if it does not...
+        /// @todo check if given revision exists in git repo? We'll get an empty changelog if it does not...
 
         // pake's own git class does not allow usage of 'git log' yet
         $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
@@ -350,6 +367,7 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
 
 /**
  * Commits changelog to the "ci" git repo and updates in there other files holding version-related infos.
+ * As part of this task, the local copy of the "ci" git repo is updated from upstream.
  *
  * The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
  * It holds, amongs other things, patch files that are applied in order to build the
@@ -367,6 +385,8 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // start work on the ci repo:
 
     // 1. update ci repo
+
+    /// @todo move this whole "update" part to a separate function for better reuse
     $cipath = $opts['ci-repo']['local-path'];
 
     $git = escapeshellarg( pake_which( 'git' ) );
@@ -391,7 +411,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     }
     if ( !$originp || !$originf )
     {
-        throw new pakeException( "Build dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
+        throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
     }
 
     $repo = new pakeGit( $cipath );
@@ -805,6 +825,19 @@ function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
     pake_remove_dir( $opts['dist']['dir'] );
+}
+
+/**
+ * Removes the directory where the local copy of the CI repo is kept
+ */
+function run_clean_ci_repo( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+    if ( @$opts['ci-repo']['local-path'] == '' )
+    {
+        throw new pakeException( "Missing option ci-repo:local-path in config file: can not remove CI repo" );
+    }
+    pake_remove_dir( $opts['ci-repo']['local-path'] );
 }
 
 /**
@@ -1282,6 +1315,8 @@ pake_task( 'dist', 'dist-init', 'dist-wpi' );
 pake_task( 'all', 'build', 'dist' );
 
 pake_task( 'clean' );
+
+pake_task( 'clean-ci-repo' );
 
 pake_task( 'dist-clean' );
 
