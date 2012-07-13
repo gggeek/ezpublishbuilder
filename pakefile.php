@@ -68,7 +68,7 @@ function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Downloads eZP from its source repository
+ * Downloads eZP from its source repository (needs to be run only once)
  * @todo add a dependency on a check-updates task that updates script itself?
  */
 function run_init( $task=null, $args=array(), $cliopts=array() )
@@ -282,6 +282,11 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         $changelogArray = array_map( 'trim', $changelogArray );
         $changelogText = implode( "\n", $changelogArray );
 
+        if ( $changelogText == '' )
+        {
+            pake_echo( "Git log returns an empty string - generating an empty changelog file. Please check if there is any problem with $rootpath" );
+        }
+
         // extract known wit issues
         preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|for ticket)? #0?([0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
         preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement)? #0?([0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );
@@ -400,12 +405,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
         {
-            $originp = explode( ' ', $remote );
+            $originp = preg_split( '/[ \t]/', $remote );
             $originp = $originp[0];
         }
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
         {
-            $originf = explode( ' ', $remote );
+            $originf = preg_split( '/[ \t]/', $remote );
             $originf = $originf[0];
         }
     }
@@ -413,7 +418,6 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
         throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
     }
-
     $repo = new pakeGit( $cipath );
 
     if ( $opts['ci-repo']['git-branch'] != '' )
@@ -660,7 +664,8 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Creates different versions of the build tarballs.
+ * Creates different versions of the build tarballs (the main tarballs are created
+ * on Jenkins).
  *
  * We rely on the pake dependency system to do the real stuff
  * (run pake -P to see tasks included in this one)
