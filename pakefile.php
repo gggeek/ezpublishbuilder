@@ -366,8 +366,55 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
     $file = pake_read_file( $changelogdir . '/' . $filename );
+    $htmlfile = array();
+    $mode = null;
+    foreach( explode( "\n", $file ) as $line )
+    {
+        switch( $line )
+        {
+            case "Bugfixes":
+                $mode = 'wit';
+                $htmlfile[] = '<h3>' . $line . '</h3><ul>';
+                break;
+            case "Enhancements":
+                $mode = 'wit';
+                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                break;
+            case "Pull requests":
+                $mode = 'github';
+                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                break;
+            case "Miscellaneous":
+                $mode = null;
+                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                break;
+            default:
+                if ( trim( $line ) == '' || preg_match( '/^=+$/', $line ) )
+                {
+                    continue;
+                }
+                switch( $mode )
+                {
+                    case 'wit':
+                        $line = preg_replace( '/^- /', '', $line );
+                        $line = preg_replace( '/#(\d+):/', '<a href="http://issues.ez.no/$1">$1</a>:', $line );
+                        break;
+                    case 'github':
+                        $line = preg_replace( '/^- /', '', $line );
+                        $line = preg_replace( '/#(\d+):/', '<a href="https://github.com/ezsystems/ezpublish/pull/$1">$1</a>:', $line );
+                        break;
+                    default;
+                        $line = preg_replace( '/^- /', '', $line );
+                        break;
 
-    pake_echo( 'TO DO: build html version of changelog' );
+                }
+                $htmlfile[] = '<li>' . $line . '</li>';
+        }
+    }
+    $htmlfile[] = '</ul>';
+    $htmlfile = implode( "\n", $htmlfile );
+
+    pake_echo( $htmlfile );
 }
 
 /**
