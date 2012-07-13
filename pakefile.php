@@ -354,9 +354,7 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Generate changelog files that can be copied and pasted into ezxml rich text; NOT IMPLEMENTED YET
- *
- * @todo
+ * Generate changelog files that can be copied and pasted into ezxml rich text; NOT FINISHED YET
  */
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
@@ -374,19 +372,19 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
         {
             case "Bugfixes":
                 $mode = 'wit';
-                $htmlfile[] = '<h3>' . $line . '</h3><ul>';
+                $htmlfile[] = '<h3>' . $line . "</h3>\n<ul>";
                 break;
             case "Enhancements":
                 $mode = 'wit';
-                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                $htmlfile[] = "</ul>\n<h3>" . $line . "</h3>\n<ul>";
                 break;
             case "Pull requests":
                 $mode = 'github';
-                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                $htmlfile[] = "</ul>\n<h3>" . $line . "</h3>\n<ul>";
                 break;
             case "Miscellaneous":
                 $mode = null;
-                $htmlfile[] = '</ul><h3>' . $line . '</h3><ul>';
+                $htmlfile[] = "</ul>\n<h3>" . $line . "</h3>\n<ul>";
                 break;
             default:
                 if ( trim( $line ) == '' || preg_match( '/^=+$/', $line ) )
@@ -397,18 +395,71 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
                 {
                     case 'wit':
                         $line = preg_replace( '/^- /', '', $line );
-                        $line = preg_replace( '/#(\d+):/', '<a href="http://issues.ez.no/$1">$1</a>:', $line );
+                        $line = preg_replace( '/#(\d+):/', '<a href="http://issues.ez.no/$1">$1</a>:', htmlspecialchars( $line ) );
                         break;
                     case 'github':
                         $line = preg_replace( '/^- /', '', $line );
-                        $line = preg_replace( '/#(\d+):/', '<a href="https://github.com/ezsystems/ezpublish/pull/$1">$1</a>:', $line );
+                        $line = preg_replace( '/#(\d+):/', '<a href="https://github.com/ezsystems/ezpublish/pull/$1">$1</a>:', htmlspecialchars( $line)  );
                         break;
                     default;
-                        $line = preg_replace( '/^- /', '', $line );
+                        $line = preg_replace( '/^- /', '', htmlspecialchars( $line ) );
                         break;
 
                 }
                 $htmlfile[] = '<li>' . $line . '</li>';
+        }
+    }
+    $htmlfile[] = '</ul>';
+    $htmlfile = implode( "\n", $htmlfile );
+
+    pake_echo( $htmlfile );
+}
+
+/**
+ * Generate changelog files that can be copied and pasted into ezxml rich text; NOT FINISHED YET
+ */
+function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+    $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $filename = eZPCPBuilder::changelogFilename( $opts );
+
+    $file = pake_read_file( $changelogdir . '/' . $filename );
+    $htmlfile = array( '<h3>Many thanks for your pull-requests on the eZ Publish repository, and on extensions :</h3>', '<ul>' );
+    $mode = null;
+    foreach( explode( "\n", $file ) as $line )
+    {
+        switch( $line )
+        {
+            case "Bugfixes":
+            case "Enhancements":
+                $mode = 'wit';
+                break;
+            case "Pull requests":
+                $mode = 'github';
+                break;
+            case "Miscellaneous":
+                $mode = null;
+                break;
+            default:
+                if ( trim( $line ) == '' || preg_match( '/^=+$/', $line ) )
+                {
+                    continue;
+                }
+                switch( $mode )
+                {
+                    case 'github':
+                        if ( preg_match( '#from (.+)/#', $line, $matches ) )
+                        {
+                            /// @todo add link
+                            $htmlfile[] = '<li><a href="https://github.com/' . urlencode( $matches[1] ) . '/">' . htmlspecialchars( $matches[1] ) . '</a></li>';
+                        }
+                        break;
+                    default;
+                        break;
+
+                }
         }
     }
     $htmlfile[] = '</ul>';
@@ -1351,6 +1402,8 @@ pake_task( 'generate-changelog' );
 pake_task( 'wait-for-changelog' );
 
 pake_task( 'generate-html-changelog' );
+
+pake_task( 'generate-html-credits' );
 
 pake_task( 'update-ci-repo' );
 
