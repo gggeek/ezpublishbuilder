@@ -762,6 +762,80 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+* Updates the "eZ CP version history" document, currently hosted on pubsvn.ez.no.
+*
+* Optional arguments: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
+*/
+function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    $public_keyfile = @$cliopts['public-keyfile'];
+    $private_keyfile = @$cliopts['private-keyfile'];
+    $private_keypasswd = @$cliopts['private-keypasswd'];
+    $user = @$cliopts['user'];
+
+    // get file
+    $srv = "http://pubsvn.ez.no";
+    $filename = "/ezpublish_version_history/ez_history.csv";
+    $fullfilename = $srv . $filename;
+    $remotefilename = '/mnt/pubsvn.ez.no/www/' . $filename;
+    $file = pake_read_file( $fullfilename );
+    if ( "" == $file )
+    {
+        throw new pakeException( "Couldn't download {$fullfilename} file" );
+    }
+
+    // patch it
+    /// @todo test that what we got looks at least a bit like what we expect
+    $lines = preg_split( "/\r?\n/", $file );
+    $lines[0] .= $opts['version']['alias']  . ',';
+    $lines[1] .= strftime( '%Y/%m/%d' )  . ',' ;
+    $file = implode( "\n", $lines );
+
+    /// @todo: back up the original as well (upload 1st to srv the unpatched version with a different name, then the new version)
+
+    // upload it: we use curl for sftp
+    $randfile = tempnam( sys_get_temp_dir(), 'EZP' );
+    pake_write_file( $randfile, $file, true );
+    $fp = fopen( $randfile, 'rb' );
+
+    $ch = curl_init();
+    curl_setopt( $ch, CURLOPT_URL, str_replace( 'http://', 'sftp://@', $srv ) . $remotefilename );
+    if ( $user != "" ) curl_setopt( $ch, CURLOPT_USERPWD, $user );
+    if ( $public_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PUBLIC_KEYFILE, $public_keyfile );
+    if ( $private_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PRIVATE_KEYFILE, $private_keyfile );
+    if ( $private_keypasswd != "" ) curl_setopt( $ch, CURLOPT_KEYPASSWD, $private_keypasswd );
+    curl_setopt( $ch, CURLOPT_UPLOAD, 1 );
+    curl_setopt( $ch, CURLOPT_INFILE, $fp );
+    // set size of the file, which isn't _mandatory_ but helps libcurl to do
+    // extra error checking on the upload.
+    curl_setopt($ch, CURLOPT_INFILESIZE, filesize( $randfile ) );
+    $ok = curl_exec( $ch );
+    $errinfo = curl_error( $ch );
+    curl_close( $ch );
+
+    fclose( $fp );
+    pake_unlink( $randfile );
+
+    if ( !$ok )
+    {
+        throw new pakeException( "Couldn't write {$fullfilename} file: " . $errinfo );
+    }
+
+    pake_echo_action( "file+", $filename );
+}
+
+/**
+ * Generates doc php api docs of the build (optionally on pubsvn.ez.no)
+ */
+function run_update_pubsvn_docs( $task=null, $args=array(), $cliopts=array() )
+{
+    var_dump( $args );
+    var_dump( $cliopts );
+}
+
+/**
  * Creates different versions of the build tarballs (the main tarballs are created
  * on Jenkins).
  *
@@ -1410,6 +1484,10 @@ pake_task( 'update-ci-repo' );
 pake_task( 'wait-for-continue' );
 
 pake_task( 'run-jenkins-build' );
+
+pake_task( 'update-version-history' );
+
+pake_task( 'update-pubsvn-docs' );
 
 pake_task( 'dist-init' );
 
