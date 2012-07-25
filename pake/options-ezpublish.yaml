@@ -31,10 +31,13 @@ dist:
 create:
     mswpipackage: yes
 
+    doxygen_doc: yes
+    docblox_doc: no
+    phpdoc_doc: no
+
     # unused yet...
     zip: no
     tarball: no
-    doxygen_doc: no
     ezpackage: yes
     pearpackage: no
 

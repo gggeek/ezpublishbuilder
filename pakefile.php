@@ -765,6 +765,8 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 * Updates the "eZ CP version history" document, currently hosted on pubsvn.ez.no.
 *
 * Optional arguments: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
+*
+* @todo add support for getting ssl certs options in config settings
 */
 function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
 {
@@ -828,11 +830,44 @@ function run_update_version_history( $task=null, $args=array(), $cliopts=array()
 
 /**
  * Generates doc php api docs of the build (optionally on pubsvn.ez.no)
+ *
+ * Options --doxygen=<...>
  */
-function run_update_pubsvn_docs( $task=null, $args=array(), $cliopts=array() )
+function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
 {
-    var_dump( $args );
-    var_dump( $cliopts );
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    if ( $opts['create']['doxygen_doc'] )
+    {
+        /// @todo allow path to doxygen to be gotten from config settings
+        $doxygen = @$cliopts['doxygen'];
+        if ( $doxygen == '' )
+        {
+            $doxygen = 'doxygen';
+        }
+        $doxygen = escapeshellarg( $doxygen );
+        $doxyfile = $opts['build']['dir'] . '/doxyfile';
+        $destdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName() . '/doxygen';
+        $sourcedir =  $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName();
+        pake_copy( 'pake/doxyfile_master', $doxyfile, array( 'override' => true ) );
+        file_put_contents( $doxyfile,
+           "\nPROJECT_NAME = " . 'eZ Publish Community Project' . /// @todo make this configurable?
+           "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
+           "\nOUTPUT_DIRECTORY = " . $destdir .
+           "\nINPUT = " . $sourcedir .
+           "\nEXCLUDE = " . $sourcedir . '/settings' . // ' ' . $sourcedir . '/lib/ezc' . ?
+           "\nSTRIP_FROM_PATH = " . $sourcedir, FILE_APPEND );
+        pake_mkdirs( $destdir );
+        $out = pake_sh( /*'cd ' . escapeshellarg( $opts['build']['dir'] ) . ' && ' .*/ $doxygen . ' ' . escapeshellarg( $doxyfile ) );
+    }
+    if ( $opts['create']['docblox_doc'] )
+    {
+
+    }
+    if ( $opts['create']['phpdoc_doc'] )
+    {
+
+    }
 }
 
 /**
@@ -987,7 +1022,7 @@ function run_all( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Removes the build/ directory
+ * Removes the build/ directory (include the apidocs directory)
  */
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
@@ -1136,7 +1171,7 @@ class eZPCPBuilder
         $default_opts = array(
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
-            'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true, 'doxygen_doc' => false, 'ezpackage' => false, 'pearpackage' => false*/ ),
+            'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, /*'ezpackage' => false, 'pearpackage' => false*/ ),
             //'version' => array( 'license' => 'GNU General Public License v2.0' ),
             //'releasenr' => array( 'separator' => '.' ),
             //'files' => array( 'to_parse' => array(), 'to_exclude' => array(), 'gnu_dir' => '', 'sql_files' => array( 'db_schema' => 'schema.sql', 'db_data' => 'cleandata.sql' ) ),
@@ -1487,7 +1522,7 @@ pake_task( 'run-jenkins-build' );
 
 pake_task( 'update-version-history' );
 
-pake_task( 'update-pubsvn-docs' );
+pake_task( 'generate-apidocs' );
 
 pake_task( 'dist-init' );
 
@@ -1503,7 +1538,7 @@ pake_task( 'clean-ci-repo' );
 
 pake_task( 'dist-clean' );
 
-pake_task( 'clean-all', 'clean', 'dist-clean' );
+pake_task( 'clean-all', 'clean', 'dist-clean', 'apidocs-clean' );
 
 pake_task( 'tool-upgrade-check' );
 
