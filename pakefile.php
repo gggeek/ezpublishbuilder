@@ -831,11 +831,25 @@ function run_update_version_history( $task=null, $args=array(), $cliopts=array()
 /**
  * Generates doc php api docs of the build (optionally on pubsvn.ez.no)
  *
- * Options --doxygen=<...>
+ * Prerequisite task: dist-init
+ * Options:
+ *   --doxygen=<...> path to doxygen executable (inc. executable name)
+ *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
+ *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
  */
 function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
+    $sourcedir = @$cliopts['sourcedir'];
+    if ( $sourcedir == '' )
+    {
+        $sourcedir = $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName();
+    }
+    $docsdir = @$cliopts['docsdir'];
+    if ( $docsdir == '' )
+    {
+        $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName();
+    }
 
     if ( $opts['create']['doxygen_doc'] )
     {
@@ -845,28 +859,59 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         {
             $doxygen = 'doxygen';
         }
-        $doxygen = escapeshellarg( $doxygen );
+        /// @todo test that sourcedir is not empty
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
-        $destdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName() . '/doxygen';
-        $sourcedir =  $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName();
         pake_copy( 'pake/doxyfile_master', $doxyfile, array( 'override' => true ) );
         file_put_contents( $doxyfile,
-           "\nPROJECT_NAME = " . 'eZ Publish Community Project' . /// @todo make this configurable?
+           "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName() .
            "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
-           "\nOUTPUT_DIRECTORY = " . $destdir .
+           "\nOUTPUT_DIRECTORY = " . $docsdir . '/doxygen' .
            "\nINPUT = " . $sourcedir .
-           "\nEXCLUDE = " . $sourcedir . '/settings' . // ' ' . $sourcedir . '/lib/ezc' . ?
+           "\nEXCLUDE = " . $sourcedir . '/settings' . // ' ' . $sourcedir . '/lib/ezc' . exclude more ?
            "\nSTRIP_FROM_PATH = " . $sourcedir, FILE_APPEND );
-        pake_mkdirs( $destdir );
-        $out = pake_sh( /*'cd ' . escapeshellarg( $opts['build']['dir'] ) . ' && ' .*/ $doxygen . ' ' . escapeshellarg( $doxyfile ) );
+        pake_mkdirs( $docsdir . '/doxygen' );
+        /// @todo capture and save logs
+        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) );
+        // zip the docs
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen.zip';
+        $target = $opts['dist']['dir'] . '/' . $filename;
+        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
     }
+
     if ( $opts['create']['docblox_doc'] )
     {
-
+        $docblox = @$cliopts['docblox'];
+        if ( $docbklox == '' )
+        {
+            $docblox = 'docblox.php';
+        }
+        pake_mkdirs( $docsdir . '/docblox/html' );
+        /// @todo capture and save logs
+        $out = pake_sh( 'php ' . escapeshellarg( $docblox ) .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
+            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
+            ' --ignore benchmarks/,extension/,lib/ezc/,settings/,tests/' );
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox.zip';
+        $target = $opts['dist']['dir'] . '/' . $filename;
+        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
     }
+
     if ( $opts['create']['phpdoc_doc'] )
     {
-
+        $phpdoc = @$cliopts['phpdoc'];
+        if ( $phpdoc == '' )
+        {
+            $phpdoc = 'phpdoc';
+        }
+        pake_mkdirs( $docsdir . '/phpdoc/html' );
+        /// @todo capture and save logs
+        $out = pake_sh( 'php ' . escapeshellarg( $phpdoc ) .
+            ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
+            ' -i benchmarks/,extension/,lib/ezc/,settings/,tests/' );
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc.zip';
+        $target = $opts['dist']['dir'] . '/' . $filename;
+        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
     }
 }
 
@@ -1022,7 +1067,7 @@ function run_all( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Removes the build/ directory (include the apidocs directory)
+ * Removes the build/ directory
  */
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
@@ -1031,7 +1076,7 @@ function run_clean( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Removes the dist/ directory
+ * Removes the dist/ directory (usually includes the apidocs directory)
  */
 function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
@@ -1138,10 +1183,16 @@ class eZPCPBuilder
     static $min_pake_version = '1.6.3';
     static $projname = 'ezpublish';
 
-    // leftover from ezextensionbuilder
+    // leftover from ezextensionbuilder - currently hardcoded in the class
     static function getProjName()
     {
         return self::$projname;
+    }
+
+    // taken from config file
+    static function getLongProjName( $withPrefix = false )
+    {
+        return ( $withPrefix ? 'eZ Publish ': '' ) . ucfirst( str_replace( '_', ' ',  self::$options[self::$projname][self::$projname]['name'] ) );
     }
 
     /**
@@ -1171,6 +1222,7 @@ class eZPCPBuilder
         $default_opts = array(
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
+            'docs' => array( 'dir' => 'dist/docs' ),
             'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, /*'ezpackage' => false, 'pearpackage' => false*/ ),
             //'version' => array( 'license' => 'GNU General Public License v2.0' ),
             //'releasenr' => array( 'separator' => '.' ),
