@@ -32,7 +32,7 @@ create:
     mswpipackage: yes
 
     doxygen_doc: yes
-    docblox_doc: no
+    docblox_doc: yes
     phpdoc_doc: no
 
     # unused yet...

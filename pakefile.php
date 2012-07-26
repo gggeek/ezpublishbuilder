@@ -870,8 +870,14 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
            "\nEXCLUDE = " . $sourcedir . '/settings' . // ' ' . $sourcedir . '/lib/ezc' . exclude more ?
            "\nSTRIP_FROM_PATH = " . $sourcedir, FILE_APPEND );
         pake_mkdirs( $docsdir . '/doxygen' );
-        /// @todo capture and save logs
-        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) );
+        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) . ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
+
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/doxygen/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/doxygen/html" );
+        }
         // zip the docs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
@@ -881,19 +887,28 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
     if ( $opts['create']['docblox_doc'] )
     {
         $docblox = @$cliopts['docblox'];
-        if ( $docbklox == '' )
+        if ( $docblox == '' )
         {
             $docblox = 'docblox.php';
         }
         pake_mkdirs( $docsdir . '/docblox/html' );
-        /// @todo capture and save logs
         $out = pake_sh( 'php ' . escapeshellarg( $docblox ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
-            ' --ignore benchmarks/,extension/,lib/ezc/,settings/,tests/' );
+            ' --ignore benchmarks/,extension/,lib/ezc/,settings/,tests/' .
+            ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
+        /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
+
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/docblox/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/docblox/html" );
+        }
+        // zip the docs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
-        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
+        eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target, ezcArchive::ZIP, true );
     }
 
     if ( $opts['create']['phpdoc_doc'] )
@@ -905,13 +920,30 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         }
         pake_mkdirs( $docsdir . '/phpdoc/html' );
         /// @todo capture and save logs
-        $out = pake_sh( 'php ' . escapeshellarg( $phpdoc ) .
+        // we try to avoid deprecation errors from phpdoc
+        $errcode =  30719; // php 5.3, 5.4
+        if ( version_compare( PHP_VERSION, '5.3.0' ) < 0 )
+        {
+            $errcode =  6143;
+        }
+        $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=2000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
-            ' -i benchmarks/,extension/,lib/ezc/,settings/,tests/' );
+            ' -i benchmarks/,extension/,lib/ezc/,settings/,tests/' .
+            ' > ' . escapeshellarg( $docsdir . '/phpdoc/generate.log' ) );
+        /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
+        ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
+        ///       sed -e "s,${phpdocinstall},,g" ${phpdocdir}/generate3.log > ${phpdocdir}/generate4.log
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/phpdoc/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/phpdoc/html" );
+        }
+        // zip the docs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
-        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
+        eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target, ezcArchive::ZIP, true );
     }
 }
 
