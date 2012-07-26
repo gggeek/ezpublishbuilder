@@ -829,13 +829,15 @@ function run_update_version_history( $task=null, $args=array(), $cliopts=array()
 }
 
 /**
- * Generates doc php api docs of the build (optionally on pubsvn.ez.no)
+ * Generates doc php api docs of the build (optionally can be run on pubsvn.ez.no)
  *
  * Prerequisite task: dist-init
  * Options:
  *   --doxygen=<...> path to doxygen executable (inc. executable name)
  *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
  *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
+ *
+ * @todo add support for setting path to tools in some config setting
  */
 function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
 {
@@ -851,6 +853,15 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName();
     }
 
+    if ( $opts['create']['doxygen_doc'] || $opts['create']['docblox_doc'] || $opts['create']['phpdoc_doc'] )
+    {
+        $files = pakeFinder::type( 'file' )->name( 'index.php' )->maxdepth( 0 )->in( $sourcedir );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Can not generate documentation: no sources found in $sourcedir" );
+        }
+    }
+
     if ( $opts['create']['doxygen_doc'] )
     {
         /// @todo allow path to doxygen to be gotten from config settings
@@ -859,7 +870,6 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         {
             $doxygen = 'doxygen';
         }
-        /// @todo test that sourcedir is not empty
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
         pake_copy( 'pake/doxyfile_master', $doxyfile, array( 'override' => true ) );
         file_put_contents( $doxyfile,
@@ -879,6 +889,7 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/doxygen/html" );
         }
         // zip the docs
+        /// @todo create .tgz, .bz2 tarballs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
         eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
@@ -906,6 +917,7 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/docblox/html" );
         }
         // zip the docs
+        /// @todo create .tgz, .bz2 tarballs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
         eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target, ezcArchive::ZIP, true );
@@ -919,13 +931,13 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             $phpdoc = 'phpdoc';
         }
         pake_mkdirs( $docsdir . '/phpdoc/html' );
-        /// @todo capture and save logs
         // we try to avoid deprecation errors from phpdoc
         $errcode =  30719; // php 5.3, 5.4
         if ( version_compare( PHP_VERSION, '5.3.0' ) < 0 )
         {
             $errcode =  6143;
         }
+        // phpdoc uses A LOT of memory as well
         $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=2000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
@@ -941,6 +953,7 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/phpdoc/html" );
         }
         // zip the docs
+        /// @todo create .tgz, .bz2 tarballs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
         eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target, ezcArchive::ZIP, true );
