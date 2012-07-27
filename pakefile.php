@@ -654,6 +654,15 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         $localcipath = '';
     }
 
+    // 1b. check that there is no spurious stuff in changelog dir, or step 3 later will create bad patch files.
+    //     we do this here to avoid adding ANY file to local copy of CI git repo and abort asap
+    $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $files = pakeFinder::type( 'file' )->maxdepth( 0 )->in( $rootpath . '/' . $changelogdir );
+    if ( count( $files ) != 1 )
+    {
+        throw new pakeException( "More than one changelog file found in directory $changelogdir, can not generate patch file for CI repo" );
+    }
+
     // 2. update 0002_2011_11_patch_fix_version.diff file
 
     $files1 = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
@@ -758,7 +767,6 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 3. generate changelog diff
 
-    $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
     // get absolute path to build dir
     $absrootpath = pakeFinder::type( 'directory' )->name( eZPCPBuilder::getProjName() )->in( $opts['build']['dir'] . '/source' );
     $absrootpath = dirname( $absrootpath[0] );
@@ -777,7 +785,6 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $files = pakeFinder::type( 'file' )->maxdepth( 0 )->in( $cipath . '/patches' );
     foreach( $files as $file )
     {
-        echo "$file\n";
         $nr = (int)substr( basename( $file ), 0, 4 );
         if ( $nr > $max )
         {
