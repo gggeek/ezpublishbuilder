@@ -68,7 +68,7 @@ function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Downloads eZP from its source repository (needs to be run only once)
+ * Downloads eZP from its source repository on github (needs to be run only once)
  * @todo add a dependency on a check-updates task that updates script itself?
  */
 function run_init( $task=null, $args=array(), $cliopts=array() )
@@ -116,11 +116,18 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Downloads the CI repo sources from git (needs to be run only once)
+ * Downloads the CI repo sources from github (needs to be run only once)
  */
 function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
+
+    $skip_init = @$cliopts['skip-init'];
+    if ( $skip-init )
+    {
+        return;
+    }
+
     if ( @$opts['ci-repo']['local-path'] == '' )
     {
         throw new pakeException( "Missing option ci-repo:local-path in config file: can not download CI repo" );
@@ -139,7 +146,10 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
         }
     }
 
+    /// @todo to make successive builds faster - if repo exists already just
+    ///       update it
     $repo = pakeGit::clone_repository( $opts['ci-repo']['git-url'], $destdir );
+
     // q: is this really needed?
     if ( $opts['ci-repo']['git-branch'] != '' )
     {
@@ -162,6 +172,50 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
  */
 function run_build( $task=null, $args=array(), $cliopts=array() )
 {
+}
+
+/**
+ * Updates local eZP sources (git pull from github)
+ */
+function run_update_source( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+
+    $git = escapeshellarg( pake_which( 'git' ) );
+
+    // 1. check if build dir is correctly linked to source git repo
+    /// @todo use pakeGit::remotes() instead of this code
+    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
+    $originf = false;
+    foreach( $remotesArray as $remote )
+    {
+        if ( strpos( $remote, $opts['git']['url'] . ' (fetch)' ) !== false )
+        {
+            $originf = explode( ' ', $remote );
+            $originf = $originf[0];
+        }
+    }
+    if ( !$originf )
+    {
+        throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['git']['url']}" );
+    }
+
+    // 2. pull and move to correct branch
+    $repo = new pakeGit( $rootpath );
+
+    /// @todo test that the branch switch does not fail
+    if ( @$opts['git']['branch'] != '' )
+    {
+        $repo->checkout( $opts['git']['branch'] );
+    }
+    else
+    {
+        $repo->checkout( 'master' );
+    }
+
+    /// @todo test that the pull does not fail
+    $repo->pull();
 }
 
 /**
@@ -236,6 +290,8 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
     if ( $previousrev != '' )
     {
+        /* moved all of this in a separate task function
+
         pake_echo( "Updating eZ Publish sources from git" );
 
         /// @todo move all of this in a specific function to be reused
@@ -243,6 +299,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
             $git = escapeshellarg( pake_which( 'git' ) );
 
             // 1. check if build dir is correctly linked to source git repo
+            /// @todo use pakeGit::remotes() instead of this code
             $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
             $originf = false;
             foreach( $remotesArray as $remote )
@@ -273,10 +330,11 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
             /// @todo test that the pull does not fail
             $repo->pull();
+        */
 
         /// @todo check if given revision exists in git repo? We'll get an empty changelog if it does not...
 
-        // pake's own git class does not allow usage of 'git log' yet
+        /// @todo replace with pakegit::log
         $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
         $changelogArray = array_map( 'trim', $changelogArray );
@@ -469,18 +527,13 @@ function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() 
 }
 
 /**
- * Commits changelog to the "ci" git repo and updates in there other files holding version-related infos.
- * As part of this task, the local copy of the "ci" git repo is updated from upstream.
- *
- * The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
- * It holds, amongs other things, patch files that are applied in order to build the
- * CP version instead of the Enterprise one
+ * Updates the local copy of the CI repo (pull from github)
  */
-function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
+function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() )
 {
     // needed on windows - unless a recent git version is used (1.7.9 is ok)
-    // and a patched pakeGit class is used ( > pake 1.6.3)
-    pakeGit::$needs_work_tree_workaround = true;
+    // and a recent pakeGit class is used ( > pake 1.6.3)
+    // pakeGit::$needs_work_tree_workaround = true;
 
     $opts = eZPCPBuilder::getOpts( $args );
     $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
@@ -495,6 +548,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $git = escapeshellarg( pake_which( 'git' ) );
 
     // test that we're on the good git
+    /// @todo use pakeGit::remotes() instead of this code
     $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
     $originp = false;
     $originf = false;
@@ -526,6 +580,68 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     /// @todo test that the pull does not fail
     $repo->pull();
+}
+
+/**
+ * Commits changelog to the "ci" git repo and updates in there other files holding version-related infos.
+ * As part of this task, the local copy of the "ci" git repo is updated from upstream.
+ *
+ * The "ci" repo is used by the standard eZ Publish build process, driven by Jenkins.
+ * It holds, amongs other things, patch files that are applied in order to build the
+ * CP version instead of the Enterprise one
+ */
+function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
+{
+    // needed on windows - unless a recent git version is used (1.7.9 is ok)
+    // and a recent pakeGit class is used ( > pake 1.6.3)
+    // pakeGit::$needs_work_tree_workaround = true;
+
+    $opts = eZPCPBuilder::getOpts( $args );
+    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+
+    // start work on the ci repo:
+
+    $cipath = $opts['ci-repo']['local-path'];
+    $git = escapeshellarg( pake_which( 'git' ) );
+
+    /* 1. update ci repo - moved to a separate task
+
+    // test that we're on the good git
+    /// @todo use pakeGit::remotes() instead of this code
+    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
+    $originp = false;
+    $originf = false;
+
+    foreach( $remotesArray as $remote )
+    {
+        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
+        {
+            $originp = preg_split( '/[ \t]/', $remote );
+            $originp = $originp[0];
+        }
+        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
+        {
+            $originf = preg_split( '/[ \t]/', $remote );
+            $originf = $originf[0];
+        }
+    }
+    if ( !$originp || !$originf )
+    {
+        throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
+    }
+    $repo = new pakeGit( $cipath );
+
+    if ( $opts['ci-repo']['git-branch'] != '' )
+    {
+        /// @todo test that the branch switch does not fail
+        $repo->checkout( $opts['ci-repo']['git-branch'] );
+    }
+
+    /// @todo test that the pull does not fail
+    $repo->pull();
+    */
+
+    $repo = new pakeGit( $cipath );
 
     if ( $opts['ci-repo']['git-path'] != '' )
     {
@@ -762,74 +878,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
-* Updates the "eZ CP version history" document, currently hosted on pubsvn.ez.no.
-*
-* Optional arguments: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
-*
-* @todo add support for getting ssl certs options in config settings
-*/
-function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
-{
-    $opts = eZPCPBuilder::getOpts( $args );
-
-    $public_keyfile = @$cliopts['public-keyfile'];
-    $private_keyfile = @$cliopts['private-keyfile'];
-    $private_keypasswd = @$cliopts['private-keypasswd'];
-    $user = @$cliopts['user'];
-
-    // get file
-    $srv = "http://pubsvn.ez.no";
-    $filename = "/ezpublish_version_history/ez_history.csv";
-    $fullfilename = $srv . $filename;
-    $remotefilename = '/mnt/pubsvn.ez.no/www/' . $filename;
-    $file = pake_read_file( $fullfilename );
-    if ( "" == $file )
-    {
-        throw new pakeException( "Couldn't download {$fullfilename} file" );
-    }
-
-    // patch it
-    /// @todo test that what we got looks at least a bit like what we expect
-    $lines = preg_split( "/\r?\n/", $file );
-    $lines[0] .= $opts['version']['alias']  . ',';
-    $lines[1] .= strftime( '%Y/%m/%d' )  . ',' ;
-    $file = implode( "\n", $lines );
-
-    /// @todo: back up the original as well (upload 1st to srv the unpatched version with a different name, then the new version)
-
-    // upload it: we use curl for sftp
-    $randfile = tempnam( sys_get_temp_dir(), 'EZP' );
-    pake_write_file( $randfile, $file, true );
-    $fp = fopen( $randfile, 'rb' );
-
-    $ch = curl_init();
-    curl_setopt( $ch, CURLOPT_URL, str_replace( 'http://', 'sftp://@', $srv ) . $remotefilename );
-    if ( $user != "" ) curl_setopt( $ch, CURLOPT_USERPWD, $user );
-    if ( $public_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PUBLIC_KEYFILE, $public_keyfile );
-    if ( $private_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PRIVATE_KEYFILE, $private_keyfile );
-    if ( $private_keypasswd != "" ) curl_setopt( $ch, CURLOPT_KEYPASSWD, $private_keypasswd );
-    curl_setopt( $ch, CURLOPT_UPLOAD, 1 );
-    curl_setopt( $ch, CURLOPT_INFILE, $fp );
-    // set size of the file, which isn't _mandatory_ but helps libcurl to do
-    // extra error checking on the upload.
-    curl_setopt($ch, CURLOPT_INFILESIZE, filesize( $randfile ) );
-    $ok = curl_exec( $ch );
-    $errinfo = curl_error( $ch );
-    curl_close( $ch );
-
-    fclose( $fp );
-    pake_unlink( $randfile );
-
-    if ( !$ok )
-    {
-        throw new pakeException( "Couldn't write {$fullfilename} file: " . $errinfo );
-    }
-
-    pake_echo_action( "file+", $filename );
-}
-
-/**
- * Generates doc php api docs of the build (optionally can be run on pubsvn.ez.no)
+ * Generates php-api docs of the build (optionally can be run on pubsvn.ez.no)
  *
  * Prerequisite task: dist-init
  * Options:
@@ -837,7 +886,9 @@ function run_update_version_history( $task=null, $args=array(), $cliopts=array()
  *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
  *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
  *
+ * @todo warn user and abort if target directories for doc are not empty
  * @todo add support for setting path to tools in some config setting
+ * @todo generate .tgs and .bz2 of docs instead of .zip
  */
 function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
 {
@@ -1102,6 +1153,100 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+ * Uploads dist artifacts to share.ez.no, pubsvn.rz.no; INCOMPLETE!
+ *
+ * We rely on the pake dependency system to do the real stuff
+ * (run pake -P to see tasks included in this one)
+ */
+function run_release( $task=null, $args=array(), $cliopts=array() )
+{
+
+}
+
+/**
+ * Uploads dist material to share.ez.no and creates all pages: changelogs/releasenotes/credits/.... TO BE DONE
+ */
+function run_update_share( $task=null, $args=array(), $cliopts=array() )
+{
+    throw new pakeException( "Task to be implemented" );
+}
+
+/**
+ * Updates the "eZ CP version history" document, currently hosted on pubsvn.ez.no.
+ *
+ * Optional arguments: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
+ *
+ * @todo add support for getting ssl certs options in config settings
+ */
+function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    $public_keyfile = @$cliopts['public-keyfile'];
+    $private_keyfile = @$cliopts['private-keyfile'];
+    $private_keypasswd = @$cliopts['private-keypasswd'];
+    $user = @$cliopts['user'];
+
+    // get file
+    $srv = "http://pubsvn.ez.no";
+    $filename = "/ezpublish_version_history/ez_history.csv";
+    $fullfilename = $srv . $filename;
+    $remotefilename = '/mnt/pubsvn.ez.no/www/' . $filename;
+    $file = pake_read_file( $fullfilename );
+    if ( "" == $file )
+    {
+        throw new pakeException( "Couldn't download {$fullfilename} file" );
+    }
+
+    // patch it
+    /// @todo test that what we got looks at least a bit like what we expect
+    $lines = preg_split( "/\r?\n/", $file );
+    $lines[0] .= $opts['version']['alias']  . ',';
+    $lines[1] .= strftime( '%Y/%m/%d' )  . ',' ;
+    $file = implode( "\n", $lines );
+
+    /// @todo: back up the original as well (upload 1st to srv the unpatched version with a different name, then the new version)
+
+    // upload it: we use curl for sftp
+    $randfile = tempnam( sys_get_temp_dir(), 'EZP' );
+    pake_write_file( $randfile, $file, true );
+    $fp = fopen( $randfile, 'rb' );
+
+    $ch = curl_init();
+    curl_setopt( $ch, CURLOPT_URL, str_replace( 'http://', 'sftp://@', $srv ) . $remotefilename );
+    if ( $user != "" ) curl_setopt( $ch, CURLOPT_USERPWD, $user );
+    if ( $public_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PUBLIC_KEYFILE, $public_keyfile );
+    if ( $private_keyfile != "" ) curl_setopt( $ch, CURLOPT_SSH_PRIVATE_KEYFILE, $private_keyfile );
+    if ( $private_keypasswd != "" ) curl_setopt( $ch, CURLOPT_KEYPASSWD, $private_keypasswd );
+    curl_setopt( $ch, CURLOPT_UPLOAD, 1 );
+    curl_setopt( $ch, CURLOPT_INFILE, $fp );
+    // set size of the file, which isn't _mandatory_ but helps libcurl to do
+    // extra error checking on the upload.
+    curl_setopt($ch, CURLOPT_INFILESIZE, filesize( $randfile ) );
+    $ok = curl_exec( $ch );
+    $errinfo = curl_error( $ch );
+    curl_close( $ch );
+
+    fclose( $fp );
+    pake_unlink( $randfile );
+
+    if ( !$ok )
+    {
+        throw new pakeException( "Couldn't write {$fullfilename} file: " . $errinfo );
+    }
+
+    pake_echo_action( "file+", $filename );
+}
+
+/**
+ * Uploads php-api docs of the build to pubsvn.ez.no. TO BE CODED
+ */
+function run_upload_apidocs( $task=null, $args=array(), $cliopts=array() )
+{
+    throw new pakeException( "Task to be implemented" );
+}
+
+/**
  * Builds the cms and generates the tarballs.
  *
  * We rely on the pake dependency system to do the real stuff
@@ -1143,7 +1288,7 @@ function run_clean_ci_repo( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Removes the build/ and dist/ directories.
+ * Removes the build/ and dist/ directories (not the one for the CI repo source files).
  *
  * We rely on the pake dependency system to do the real stuff
  * (run pake -P to see tasks included in this one)
@@ -1601,21 +1746,25 @@ pake_task( 'init' );
 
 pake_task( 'init-ci-repo' );
 
-pake_task( 'build', 'init', 'generate-changelog', 'wait-for-changelog', 'generate-html-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build' );
+pake_task( 'build', 'init', 'init-ci-repo', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build' );
 
-pake_task( 'generate-changelog' );
+pake_task( 'update-source' );
+
+pake_task( 'generate-changelog', 'update-source' );
 
 pake_task( 'wait-for-changelog' );
 
-pake_task( 'generate-html-changelog' );
+pake_task( 'update-ci-repo-source' );
 
-pake_task( 'generate-html-credits' );
-
-pake_task( 'update-ci-repo' );
+pake_task( 'update-ci-repo', 'update-ci-repo-source' );
 
 pake_task( 'wait-for-continue' );
 
 pake_task( 'run-jenkins-build' );
+
+pake_task( 'generate-html-changelog' );
+
+pake_task( 'generate-html-credits' );
 
 pake_task( 'update-version-history' );
 
@@ -1625,9 +1774,11 @@ pake_task( 'dist-init' );
 
 pake_task( 'dist-wpi' );
 
-pake_task( 'dist', 'dist-init', 'dist-wpi' );
+pake_task( 'dist', 'dist-init', 'dist-wpi', 'generate-apidocs' );
 
-pake_task( 'all', 'build', 'dist' );
+pake_task( 'release', 'generate-html-changelog', 'generate-html-credits', 'update-share', 'update-version-history', 'upload-apidocs' );
+
+pake_task( 'all', 'build', 'dist', 'release' );
 
 pake_task( 'clean' );
 
@@ -1635,7 +1786,7 @@ pake_task( 'clean-ci-repo' );
 
 pake_task( 'dist-clean' );
 
-pake_task( 'clean-all', 'clean', 'dist-clean', 'apidocs-clean' );
+pake_task( 'clean-all', 'clean', 'dist-clean' );
 
 pake_task( 'tool-upgrade-check' );
 
