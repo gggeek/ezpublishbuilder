@@ -335,6 +335,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         /// @todo check if given revision exists in git repo? We'll get an empty changelog if it does not...
 
         /// @todo replace with pakegit::log
+        $git = escapeshellarg( pake_which( 'git' ) );
         $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
         $changelogArray = array_map( 'trim', $changelogArray );
@@ -795,6 +796,8 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
         '/^ezp\.cp\.version\.minor += +.+$/m' => "ezp.cp.version.minor = {$opts['version']['minor']}"
     ) );
     $repo->add( array( $localcipath . 'properties/ezpublish-gpl.properties' ) );
+
+exit;
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
