@@ -1119,23 +1119,23 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
             /// @todo move this to another phase/task... ?
 
             $pakepath = dirname( __FILE__ ) . '/pake';
-            pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql' );
+            pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql', array( 'override' => true ) );
 
             /// @todo: if the $rootpath is different from "ezpublish", the manifest and parameters files need to be altered accordingly
             /// after copying them to their location
-            pake_copy( $pakepath . '/wpifiles/manifest.xml', $toppath . '/manifest.xml' );
-            pake_copy( $pakepath . '/wpifiles/parameters.xml', $toppath . '/parameters.xml' );
+            pake_copy( $pakepath . '/wpifiles/manifest.xml', $toppath . '/manifest.xml', array( 'override' => true ) );
+            pake_copy( $pakepath . '/wpifiles/parameters.xml', $toppath . '/parameters.xml', array( 'override' => true ) );
 
             // this one is overwritten
             pake_copy( $pakepath . '/wpifiles/kickstart.ini', $rootpath . '/kickstart.ini', array( 'override' => true ) );
 
             if ( is_file( $rootpath . '/web.config-RECOMMENDED' ) )
             {
-                pake_copy( $rootpath . '/web.config-RECOMMENDED', $rootpath . '/web.config' );
+                pake_copy( $rootpath . '/web.config-RECOMMENDED', $rootpath . '/web.config', array( 'override' => true ) );
             }
             else if ( !is_file( $rootpath . '/web.config' ) )
             {
-                pake_copy( $pakepath . '/wpifiles/web.config', $rootpath . '/web.config' );
+                pake_copy( $pakepath . '/wpifiles/web.config', $rootpath . '/web.config', array( 'override' => true ) );
             }
 
             // create zip
