@@ -3,21 +3,17 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # global
 
-. new task: update (updates local git repo of eZ from upstream)
-
-. new task: generate html version of changelog from txt version
+. finish task: generate html version of changelog from txt version (test copy+paste it into online editor on share.ez.no)
 
 . new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step 12 in the instructions)
 
 . new task: tag the build in jenkins with correct "keep forever" and "description" data (step 11 in the instructions)
 
-. new task: tag the build in the revision history file on pubsvn.ez.no
-
 . new task: generate upgrade instructions, checking for the need to run sql script
   (ideally, sql upgrade scripts should be put in the diff files on ci.ez.no,
   so that they are bundled with the release)
 
-. new task: create on share.ez.no release notes, changelo, upgrade instructions (using ezcontenstaging rest api)
+. new task: create on share.ez.no release notes, changelog, upgrade instructions (using ezcontenstaging rest api)
 
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
@@ -29,6 +25,7 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . give user chance to break after seeing info about package repo url?
 . allow script to run in --force mode, that avoids waiting for user input
+. update the version number in the sql schema and .dba file
 
 # init, init-ci-repo, update-ci-repo, generate-changelog tasks
 
@@ -38,14 +35,13 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . allow task to set up username and email automatically for git, and also to test push to upstream
 
-# update-ci-repo  task
-
-. split the "git pull" part in a separate, prerequisite task
-
 # init-dist task
 
 . recover the jenkins build number from jenkins (is it possible? we did not tag it yet...)
 
+# init, init-ci-repo tasks
+
+. if repos already exist locally, run an update instead of trying full download
 
 
 # Windows Web Application Gallery / Web Platform Installer package

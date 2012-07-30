@@ -1,4 +1,4 @@
-Changes for version 0.3 - released 2012/xx/yy
+Changes for version 0.3 - released 2012/7/30
 
 *General:
 . Updated the bundled pake to version 1.7.0
@@ -6,6 +6,12 @@ Changes for version 0.3 - released 2012/xx/yy
     generate-html-credits
     generate-html-changelog
     update-version-history
+    generate-apidocs
+. added more tasks to update git repositories after the 1st build:
+    update-sources, update-ci-repo-sources
 
 *Bugfixes:
 . Fixed updating of "ci" repository before launching the jenkins build
+. make sure all failures of git command are properly detected
+. make sure updated files are used in wpi build if building in a non-empty dir
+. removed leftover echo statements

@@ -1118,6 +1118,8 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
             // add extra files to build
             /// @todo move this to another phase/task... ?
 
+            /// @todo shall we check that there's no spurious file in $toppath?
+
             $pakepath = dirname( __FILE__ ) . '/pake';
             pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql', array( 'override' => true ) );
 
@@ -1379,8 +1381,8 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.3-dev';
-    static $min_pake_version = '1.6.3';
+    static $version = '0.3';
+    static $min_pake_version = '1.7.1';
     static $projname = 'ezpublish';
 
     // leftover from ezextensionbuilder - currently hardcoded in the class

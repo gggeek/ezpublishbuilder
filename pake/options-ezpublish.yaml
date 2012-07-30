@@ -5,7 +5,7 @@ ezpublish:
 version:
     # the version number set here can be overridden via command line arguments
     major: 2012
-    minor: 6
+    minor: 7
     release: 0
 
     previous:
