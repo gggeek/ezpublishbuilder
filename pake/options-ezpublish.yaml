@@ -5,13 +5,13 @@ ezpublish:
 version:
     # the version number set here can be overridden via command line arguments
     major: 2012
-    minor: 7
+    minor: 8
     release: 0
 
     previous:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
-        #name:  2011.12
+        name:  2012.6
         # git tag for previous version, used in changelog generation.
         # If empty, this will be calculated by looking up in jenkins a build
         # that has been tagged with the version number of the last build

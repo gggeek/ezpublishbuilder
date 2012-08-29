@@ -804,8 +804,6 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     ) );
     $repo->add( array( $localcipath . 'properties/ezpublish-gpl.properties' ) );
 
-exit;
-
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
     pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git push $originp {$opts['ci-repo']['git-branch']}:{$opts['ci-repo']['git-branch']}" );
@@ -1381,7 +1379,7 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.3';
+    static $version = '0.3.1';
     static $min_pake_version = '1.7.1';
     static $projname = 'ezpublish';
 
@@ -1645,12 +1643,13 @@ class eZPCPBuilder
     * Partial support for 2012.1.2 schema (eg 2011.1.2 -> 2011.1.1 -> 2011.1 -> 20112.12)
     * User can define an alternative previous version in config file.
     * @bug what if previous of 2012.4 is 2012.3.9?
+    * @return string
     */
     static function previousVersionName( $opts )
     {
         if ( isset( $opts['version']['previous']['name'] ) )
         {
-            return  $opts['version']['previous']['name'];
+            return  (string)$opts['version']['previous']['name'];
         }
         else
         {
