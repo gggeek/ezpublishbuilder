@@ -240,7 +240,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         pake_echo( "Looking up corresponding build number in Jenkins" );
         // find git rev of the build of the previous release on jenkins
         $previousrev = '';
-        $buildsurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json?tree=builds[description,number,result,binding]';
+        $buildsurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/api/json?tree=builds[description,number,result,binding]', $opts );
         // pake_read_file throws exception on http errors, no need to check for it
         $out = json_decode( pake_read_file( $buildsurl ), true );
         if ( is_array( $out ) && isset( $out['builds'] ) )
@@ -258,7 +258,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
             if ( $previousbuild )
             {
-                $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $previousbuild . '/api/json';
+                $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $previousbuild . '/api/json', $opts );
                 $out = json_decode( pake_read_file( $buildurl ), true );
                 if ( is_array( @$out['actions'] ) )
                 {
@@ -539,11 +539,6 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     $opts = eZPCPBuilder::getOpts( $args );
     $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
-    // start work on the ci repo:
-
-    // 1. update ci repo
-
-    /// @todo move this whole "update" part to a separate function for better reuse
     $cipath = $opts['ci-repo']['local-path'];
 
     $git = escapeshellarg( pake_which( 'git' ) );
@@ -720,6 +715,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
                     throw new pakeException( "The diff file $patchfile1 does not apply correctly, build will fail. Please fix it, commit and push.\n Also chek to fix if needed the url to packages repo in 0003_2011_11_patch_fix_package_repository.diff.\nError details:\n" . $patcherror );
                 }
                 pake_echo( "It seems that EE version $oldNextVersionMajor.$oldNextVersionMinor was released, next expected EE version is currently $newNextVersionMajor.$newNextVersionMinor" );
+                pake_echo( "This means that the diff file $patchfile1 does not apply correctly, the build will fail." );
                 pake_echo( "The script can fix this automatically, or you will have to fix patch files by hand (at least 2 of them)" );
                 pake_echo( "Proposed changes:" );
                 pake_echo( "Packages available during setup wizard execution for this CP build will be the ones from eZP $oldNextVersionMajor.$oldNextVersionMinor.0" );
@@ -836,7 +832,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     // trigger build
     /// @todo Improve this: jenkins gives us an http 302 => html page,
     ///       so far I have found no way to get back a json-encoded result
-    $buildstarturl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/build?delay=0sec';
+    $buildstarturl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/build?delay=0sec', $opts );
     $out = pake_read_file( $buildstarturl );
     // "scrape" the number of the currently executing build, and hope it is the one we triggered.
     // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
@@ -859,7 +855,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     */
 
     pake_echo( "Build $buildnr triggered. Starting polling..." );
-    $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json';
+    $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json', $opts );
     while ( true )
     {
         sleep( 5 );
@@ -1045,7 +1041,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
 
     // get list of files from the build
-    $buildurl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/' . $buildnr;
+    $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr, $opts );
     $out = json_decode( pake_read_file( $buildurl . '/api/json' ), true );
     if ( !is_array( $out ) || !is_array( @$out['artifacts'] ) )
     {
@@ -1670,6 +1666,25 @@ class eZPCPBuilder
                 return ( $opts['version']['major'] - 1 ) . '.12';
             }
         }
+    }
+
+    /**
+    * Creates a full url to connect to Jenkins by adding in hostname and auth tokens
+    */
+    static function jenkinsUrl( $url, $opts )
+    {
+        if ( $opts['jenkins']['token'] != '' )
+        {
+            if ( strpos( $url, '?' ) !== false )
+            {
+                $url .= "&token=" . $opts['jenkins']['token'];
+            }
+            else
+            {
+                $url .= "?token=" . $opts['jenkins']['token'];
+            }
+        }
+        return $opts['jenkins']['url'] . str_replace( '//', '/', '/' . $url );
     }
 }
 
