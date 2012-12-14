@@ -455,7 +455,7 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
                     case 'wit-jira':
                         $line = preg_replace( '/^- /', '', $line );
                         $line = preg_replace( '/#(\d+):/', '<a href="http://issues.ez.no/$1">$1</a>:', htmlspecialchars( $line ) );
-                        $line = preg_replace(  '/( EZP-\d+):/', '<a href="https://jira.ez.no/browse/$1">$1</a>:', htmlspecialchars(  $line ) );
+                        $line = preg_replace(  '/( EZP-\d+):/', '<a href="https://jira.ez.no/browse/$1">$1</a>:', $line );
                         break;
                     case 'github':
                         $line = preg_replace( '/^- /', '', $line );
