@@ -430,11 +430,11 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
         switch( $line )
         {
             case "Bugfixes":
-                $mode = 'wit';
+                $mode = 'wit-jira';
                 $htmlfile[] = '<h3>' . $line . "</h3>\n<ul>";
                 break;
             case "Enhancements":
-                $mode = 'wit';
+                $mode = 'wit-jira';
                 $htmlfile[] = "</ul>\n<h3>" . $line . "</h3>\n<ul>";
                 break;
             case "Pull requests":
@@ -452,9 +452,10 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
                 }
                 switch( $mode )
                 {
-                    case 'wit':
+                    case 'wit-jira':
                         $line = preg_replace( '/^- /', '', $line );
                         $line = preg_replace( '/#(\d+):/', '<a href="http://issues.ez.no/$1">$1</a>:', htmlspecialchars( $line ) );
+                        $line = preg_replace(  '/( EZP-\d+):/', '<a href="https://jira.ez.no/browse/$1">$1</a>:', htmlspecialchars(  $line ) );
                         break;
                     case 'github':
                         $line = preg_replace( '/^- /', '', $line );
