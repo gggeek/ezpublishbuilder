@@ -1,3 +1,11 @@
+### Config. file for the ezpublishbuilder script
+###
+### Note that the script will load as well a 2nd config file (if it exists):
+###  options-ezpublish-user.yaml
+### This allow you to separate sensistive info such as passwords or local info
+### such as non-standard paths to tools: the -user config file is not stored in
+### git.
+
 ezpublish:
     # used in name of zips/tarballs
     name: community_project
@@ -5,13 +13,14 @@ ezpublish:
 version:
     # the version number set here can be overridden via command line arguments
     major: 2012
-    minor: 8
+    minor: 12
     release: 0
 
     previous:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
-        name:  2012.6
+        # Useful when e.g. skipping a version
+        #name:  2012.6
         # git tag for previous version, used in changelog generation.
         # If empty, this will be calculated by looking up in jenkins a build
         # that has been tagged with the version number of the last build
@@ -57,12 +66,16 @@ ci-repo:
     # If a local copy of this repo is already onboard, set its value here.
     # Otherwise, a copy will be donloaded in it when running the init-ci-repo task
     # NB: it should not be within the 'build' or 'dist' directories
-    local-path: d:\htdocs\ezp\github\ci
+    local-path: /var/www/github/ci
 
 # the server running the eZP "main" build process
 jenkins:
-    url: http://ci.ez.no
+    url: https://ci.ez.no
     job: ezpublish-full-community
+    job5: ezpublish5-full-community
+    # The following is used as auth token if access to Jenkins is protected
+    user:
+    apitoken:
 
 # unused yet...
 #files:

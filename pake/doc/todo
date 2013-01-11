@@ -3,11 +3,19 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # global
 
+. finish integration with v5:
+  - the WPI generation has to be reviewed
+  - automate checking for status of v5ee and v4 jobs before starting the "merge" job
+  - rewrite the shell part of the v5-community task in php
+  - complete changelog generation taking into account all 3 repos
+
+. remove usage of ezc for zippping purposes in favour of tar
+
 . finish task: generate html version of changelog from txt version (test copy+paste it into online editor on share.ez.no)
 
-. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step 12 in the instructions)
+. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step XX in the instructions)
 
-. new task: tag the build in jenkins with correct "keep forever" and "description" data (step 11 in the instructions)
+. new task: tag the builds in jenkins with correct "keep forever" and "description" data (step YY in the instructions)
 
 . new task: generate upgrade instructions, checking for the need to run sql script
   (ideally, sql upgrade scripts should be put in the diff files on ci.ez.no,
@@ -19,6 +27,8 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . all pake tasks: download, build, ...
   - replace version nr. in install dir ? (nb: not for ms web app package) (???)
+
+. new task: integrate with grunt.js
 
 
 # update-ci-repo task

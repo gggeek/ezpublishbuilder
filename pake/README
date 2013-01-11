@@ -32,7 +32,7 @@ or questions please contact info@ez.no
   You can get it either from https://github.com/indeyets/pake/wiki
   or as part of the extension itself, the first time you run the pakefile.php script
 - the Zeta Components php library (only for generating tarballs and html docs from rst)
-- command line tools: git
+- command line tools: git, tar
 - access to the eZ Publish build server (Jenkins) and CI github repositories
 - Doxygen 1.8.1.2 or later (for generating the API documentation)
 - Docblox 0.18.1 or later (for generating the API documentation)

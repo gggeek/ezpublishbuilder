@@ -240,9 +240,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         pake_echo( "Looking up corresponding build number in Jenkins" );
         // find git rev of the build of the previous release on jenkins
         $previousrev = '';
-        $buildsurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/api/json?tree=builds[description,number,result,binding]', $opts );
-        // pake_read_file throws exception on http errors, no need to check for it
-        $out = json_decode( pake_read_file( $buildsurl ), true );
+        $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job'] . '/api/json?tree=builds[description,number,result,binding]', $opts );
         if ( is_array( $out ) && isset( $out['builds'] ) )
         {
             $previousbuild = '';
@@ -258,8 +256,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 
             if ( $previousbuild )
             {
-                $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $previousbuild . '/api/json', $opts );
-                $out = json_decode( pake_read_file( $buildurl ), true );
+                $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job'] . '/' . $previousbuild . '/api/json', $opts );
                 if ( is_array( @$out['actions'] ) )
                 {
                     foreach( $out['actions'] as $action )
@@ -556,6 +553,8 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
         {
             $originp = preg_split( '/[ \t]/', $remote );
             $originp = $originp[0];
+            // dirty, dirty hack
+            $GLOBALS['originp'] = $originp;
         }
         if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
         {
@@ -575,7 +574,7 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
         $repo->checkout( $opts['ci-repo']['git-branch'] );
     }
 
-    /// @todo test that the pull does not fail
+    /// @todo test that the pull does not fail: do a git status and check for differences
     $repo->pull();
 }
 
@@ -601,42 +600,10 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $cipath = $opts['ci-repo']['local-path'];
     $git = escapeshellarg( pake_which( 'git' ) );
 
-    /* 1. update ci repo - moved to a separate task
+    // 1. update ci repo - moved to a separate task
 
-    // test that we're on the good git
-    /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
-    $originp = false;
-    $originf = false;
-
-    foreach( $remotesArray as $remote )
-    {
-        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
-        {
-            $originp = preg_split( '/[ \t]/', $remote );
-            $originp = $originp[0];
-        }
-        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
-        {
-            $originf = preg_split( '/[ \t]/', $remote );
-            $originf = $originf[0];
-        }
-    }
-    if ( !$originp || !$originf )
-    {
-        throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
-    }
-    $repo = new pakeGit( $cipath );
-
-    if ( $opts['ci-repo']['git-branch'] != '' )
-    {
-        /// @todo test that the branch switch does not fail
-        $repo->checkout( $opts['ci-repo']['git-branch'] );
-    }
-
-    /// @todo test that the pull does not fail
-    $repo->pull();
-    */
+    // dirty, dirty hack
+    $originp = $GLOBALS['originp'];
 
     $repo = new pakeGit( $cipath );
 
@@ -820,9 +787,9 @@ function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Executes the build project on Jenkins
+ * Executes the build project on Jenkins (ezp4)
  */
-function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
+function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
 
@@ -833,8 +800,7 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     // trigger build
     /// @todo Improve this: jenkins gives us an http 302 => html page,
     ///       so far I have found no way to get back a json-encoded result
-    $buildstarturl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/build?delay=0sec', $opts );
-    $out = pake_read_file( $buildstarturl );
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job'] . '/build?delay=0sec', $opts );
     // "scrape" the number of the currently executing build, and hope it is the one we triggered.
     // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
     $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
@@ -856,11 +822,74 @@ function run_run_jenkins_build( $task=null, $args=array(), $cliopts=array() )
     */
 
     pake_echo( "Build $buildnr triggered. Starting polling..." );
-    $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json', $opts );
+    $buildurl = 'job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json';
     while ( true )
     {
         sleep( 5 );
-        $out = json_decode( pake_read_file( $buildurl ), true );
+        $out = eZPCPBuilder::jenkinsCall( $buildurl, $opts ); // true
+        if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
+        {
+            throw new pakeException( "Error in retrieving build status" );
+        }
+        else if ( $out['building'] == false )
+        {
+            break;
+        }
+        pake_echo( 'Polling...' );
+    }
+
+    if ( is_array( $out ) && @$out['result'] == 'SUCCESS' )
+    {
+        pake_echo( "Build $buildnr succesful" );
+    }
+    else
+    {
+        throw new pakeException( "Build failed or unknown status" );
+    }
+}
+
+/**
+ * Executes the build project on Jenkins (ezp5)
+ * @todo code is duplicate of run_run_jenkins_build, reunite
+ */
+function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    /// Use jenkins Remote Access Api
+    /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
+    /// @see https://wiki.jenkins-ci.org/display/JENKINS/Authenticating+scripted+clients
+
+    // trigger build
+    /// @todo Improve this: jenkins gives us an http 302 => html page,
+    ///       so far I have found no way to get back a json-encoded result
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job5'] . '/buildWithParameters?delay=0sec&VERSION=' . $opts['version']['alias'], $opts );
+    // "scrape" the number of the currently executing build, and hope it is the one we triggered.
+    // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
+    $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
+    if ( !$ok )
+    {
+        // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
+        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['job5'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
+        if ( !$ok )
+        {
+            throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
+        }
+    }
+    $buildnr = $matches[1];
+
+    /*
+       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json';
+       $out = json_decode( pake_read_file( $buildurl ), true );
+       // $buildnr = ...
+    */
+
+    pake_echo( "Build $buildnr triggered. Starting polling..." );
+    $buildurl = 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/api/json';
+    while ( true )
+    {
+        sleep( 5 );
+        $out = eZPCPBuilder::jenkinsCall( $buildurl, $opts ); // true
         if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
         {
             throw new pakeException( "Error in retrieving build status" );
@@ -945,7 +974,8 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/doxygen/html" );
         }
         // zip the docs
-        /// @todo create .tgz, .bz2 tarballs
+
+        /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
         eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
@@ -973,7 +1003,7 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/docblox/html" );
         }
         // zip the docs
-        /// @todo create .tgz, .bz2 tarballs
+        /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox.zip';
         $target = $opts['dist']['dir'] . '/' . $filename;
         eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target, ezcArchive::ZIP, true );
@@ -1042,8 +1072,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
 
     // get list of files from the build
-    $buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr, $opts );
-    $out = json_decode( pake_read_file( $buildurl . '/api/json' ), true );
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/api/json', $opts );
     if ( !is_array( $out ) || !is_array( @$out['artifacts'] ) )
     {
         pake_echo( 'Error in retrieving build description from Jenkins or no artifacts in build' );
@@ -1058,12 +1087,13 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
 
     // find the correct variant
+    //$buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr, $opts );
     $fileurl = '';
     foreach( $out['artifacts'] as $artifact )
     {
-        if ( substr( $artifact['fileName'], -4 ) == '.zip' && strpos( $artifact['fileName'], 'with_ezc' ) !== false )
+        if ( substr( $artifact['fileName'], -4 ) == '.bz2' /*&& strpos( $artifact['fileName'], 'with_ezc' ) !== false*/ )
         {
-            $fileurl = $buildurl . '/artifact/' . $artifact['relativePath'];
+            $fileurl = 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/artifact/' . $artifact['relativePath'];
             break;
         }
     }
@@ -1072,20 +1102,26 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
         pake_echo( "No artifacts available for build $buildnr" );
         return;
     }
-    // download and unzip the file
-    $filename = sys_get_temp_dir() . '/' .  $artifact['fileName'];
-    pake_write_file( $filename, pake_read_file( $fileurl ), 'cpb' );
-    if ( !class_exists( 'ezcArchive' ) )
-    {
-        throw new pakeException( "Missing Zeta Components: cannot unzip downloaded file. Use the environment var PHP_CLASSPATH" );
-    }
+
     // clean up the 'release' dir
+    $rootpath = $opts['build']['dir'] . '/release';
     /// @todo this method is a bit slow, should find a faster one
     pake_remove_dir( $opts['build']['dir'] . '/release' );
+
+    // download and unzip the file
+    pake_mkdirs( $rootpath );
+    $filename = $rootpath() . '/' .  $artifact['fileName'];
+    pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
+    //if ( !class_exists( 'ezcArchive' ) )
+    //{
+    //    throw new pakeException( "Missing Zeta Components: cannot unzip downloaded file. Use the environment var PHP_CLASSPATH" );
+    //}
+
     // and unzip eZ into it - in a folder with a specific name
-    $zip = ezcArchive::open( $filename, ezcArchive::ZIP );
-    $rootpath = $opts['build']['dir'] . '/release';
-    $zip->extract( $rootpath );
+    //$zip = ezcArchive::open( $filename, ezcArchive::BZIP2 );
+    //$zip->extract( $rootpath );
+    pake_sh( "cd " . escapeshellarg( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
+
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
     $currdir = $currdir[0];
     $finaldir = $rootpath . '/' . eZPCPBuilder::getProjName();
@@ -1427,6 +1463,14 @@ class eZPCPBuilder
             /*'dependencies' => array( 'extensions' => array() )*/ );
         /// @todo !important: test if !file_exists give a nicer warning than what we get from loadFile()
         $options = pakeYaml::loadFile( $infile );
+
+        $useroptsfile = str_replace( '.yaml', '-user.yaml', $infile );
+        if ( file_exists( $useroptsfile ) )
+        {
+            $useroptions = pakeYaml::loadFile( $useroptsfile );
+            self::recursivemerge( $options, $useroptions );
+        }
+
         foreach( $mandatory_opts as $key => $opts )
         {
             foreach( $opts as $opt )
@@ -1687,6 +1731,65 @@ class eZPCPBuilder
         }
         return $opts['jenkins']['url'] . str_replace( '//', '/', '/' . $url );
     }
+
+   /**
+    * Encapsulate calls to Jenkins
+    * @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
+    */
+    static function jenkinsCall( $url, $opts, $method='GET', $body=null, $decode=true )
+    {
+        $url = self::jenkinsUrl( $url, $opts );
+        $headers = array();
+        // basic auth tokens
+        /// @see https://wiki.jenkins-ci.org/display/JENKINS/Authenticating+scripted+clients
+        if ( $opts['jenkins']['user'] != '' )
+        {
+            $headers[] =  "Authorization: Basic " . base64_encode( $opts['jenkins']['user'] . ":" . $opts['jenkins']['apitoken'] );
+        }
+        if ( $method == 'POST' )
+        {
+            /// @todo only decode json if content-type response header says so
+            $out = pakeHttp::post( $url, null, $body, $headers );
+        }
+        else
+        {
+            $out = pakeHttp::get( $url, null, $headers );
+        }
+        // pakeHttp throws exception on http errors, no need to check for it
+
+        // we have no access to reponse headers, dumb way to tell apart plaintext from json
+        if ( $decode )
+        {
+            $ret = json_decode( $out, true );
+            return is_array( $ret ) ? $ret : $out;
+        }
+        return $out;
+    }
+
+    static function recursivemerge( &$a, $b )
+    {
+        //$a will be result. $a will be edited. It's to avoid a lot of copying in recursion
+        foreach( $b as $child => $value )
+        {
+            if( isset( $a[$child] ) )
+            {
+                if( is_array( $a[$child] ) && is_array( $value ) )
+                {
+                    //merge if they are both arrays
+                    self::recursivemerge( $a[$child], $value );
+                }
+                else
+                {
+                    // replace otherwise
+                    $a[$child] = $value;
+                }
+            }
+            else
+            {
+                $a[$child] = $value; //add if not exists
+            }
+        }
+    }
 }
 
 }
@@ -1787,7 +1890,9 @@ pake_task( 'update-ci-repo', 'update-ci-repo-source' );
 
 pake_task( 'wait-for-continue' );
 
-pake_task( 'run-jenkins-build' );
+pake_task( 'run-jenkins-build4' );
+
+pake_task( 'run-jenkins-build5' );
 
 pake_task( 'generate-html-changelog' );
 

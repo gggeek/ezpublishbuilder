@@ -1,5 +1,6 @@
 build/
 dist/
 ant/
+pake/options-ezpublish-user.yaml
 *.PHPEditProject
 *.bak
