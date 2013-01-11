@@ -74,6 +74,8 @@ jenkins:
     job: ezpublish-full-community
     job5: ezpublish5-full-community
     # The following is used as auth token if access to Jenkins is protected
+    # NB: as of 1/2013, this is enabled on ci.ez.no.
+    # To get the api token, log in to jenkins, then go to your user profile page
     user:
     apitoken:
 

@@ -7,7 +7,7 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
   - the WPI generation has to be reviewed
   - automate checking for status of v5ee and v4 jobs before starting the "merge" job
   - rewrite the shell part of the v5-community task in php
-  - complete changelog generation taking into account all 3 repos
+  - complete changelog generation taking into account all 3 repos => needs to tag the other 2 builds
 
 . remove usage of ezc for zippping purposes in favour of tar
 

@@ -64,6 +64,11 @@ you will not need to edit options-ezpublish.yaml every time.
 The system will also load a 2nd config. file: options-ezpublish-user.yaml.
 This file is not kept in github and is a good place to store data which is sensitive
 or local to your environment, such as passwords or paths to cli tools.
+It has the same format as options-ezpublish.yaml
+
+Parameters that you will have to put in it:
+- jenkins username
+- jenkins api-token (visible in your user profile page)
 
 
 5. Launch the build (for every build)
