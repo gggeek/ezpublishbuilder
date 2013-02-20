@@ -12,21 +12,32 @@ ezpublish:
 
 version:
     # the version number set here can be overridden via command line arguments
-    major: 2012
-    minor: 12
+    major: 2013
+    minor: 1
     release: 0
 
     previous:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
         # Useful when e.g. skipping a version
-        #name:  2012.6
+        name: 2012.12
         # git tag for previous version, used in changelog generation.
         # If empty, this will be calculated by looking up in jenkins a build
         # that has been tagged with the version number of the last build
         # (eg 2012.1 => 2011.12), and then finding the git revision of the build
         # immediately after that one
-        #git-revision: 57115473dd4db9243b23e94a55612ba1977391fa
+        git-revision: 01f529b2ee8afef8fbe723bd3313794c97ea9f93
+
+    previous5:
+        # git tag for previous version build on the ezpublish5 repo, used in changelog generation.
+        # @TODO: Add Jenkins URL at which this SHA1 can be found
+        #        (might be https://ci.ez.no/view/Community/job/ezpublish5/)
+        git-revision: 7e8f29ad01c8df0e8815eb80a5f3b61628072821
+
+    previousApi:
+        # git tag for previous version build on the ezp-next repo, used in changelog generation.
+        # @TODO: Add Jenkins URL at which this SHA1 can be found
+        git-revision: d09527beb5786b48f66eb81cc175031394e0b579
 
 build:
     # Directory for the build.
@@ -52,7 +63,21 @@ create:
 
 # Source repo (only git usable at the moment - see ezextensionbuilder for other options)
 git:
-    url: git://github.com/ezsystems/ezpublish.git
+    url: git@github.com:ezsystems/ezpublish-legacy.git
+
+    # in case a different branch is to be used for the build
+    #branch:
+
+# eZ Publish 5 Source repo (only git usable at the moment - see ezextensionbuilder for other options)
+git5:
+    url: git@github.com:ezsystems/ezpublish-community.git
+
+    # in case a different branch is to be used for the build
+    #branch:
+
+# eZ Publish API++ Source repo (only git usable at the moment - see ezextensionbuilder for other options)
+gitApi:
+    url: git@github.com:ezsystems/ezpublish-kernel.git
 
     # in case a different branch is to be used for the build
     #branch:
@@ -76,8 +101,8 @@ jenkins:
     # The following is used as auth token if access to Jenkins is protected
     # NB: as of 1/2013, this is enabled on ci.ez.no.
     # To get the api token, log in to jenkins, then go to your user profile page
-    user:
-    apitoken:
+    user: 
+    apitoken: 
 
 # unused yet...
 #files:
