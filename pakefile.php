@@ -85,101 +85,38 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
         $destdir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
     }
 
+    // if target dir is not empty, force user to run a "clean"
+    if ( is_dir( $destdir ) )
+    {
+        $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
+        if ( count( $leftovers ) )
+        {
+            throw new pakeException( "Can not download eZ Publish sources into directory $destdir because it is not empty. Please run task 'clean' to wipe it then retry" );
+        }
+    }
+
     if ( ! $skip_init_fetch )
     {
-        /**
-         * Phase 1: eZ Publish Legacy Stack (LS)
-         */
-        pake_echo( 'Fetching code from eZ Publish Legacy Stack (LS) GIT repository' );
-
-        if ( @$opts['git']['url'] == '' )
+        foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
         {
-            throw new pakeException( "Missing source repo option git:url in config file" );
-        }
 
-        // if target dir is not empty, force user to run a "clean"
-        if ( is_dir( $destdir ) )
-        {
-            $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
-            if ( count( $leftovers ) )
+            pake_echo( "Fetching code from eZ Publish $repo GIT repository" );
+
+            if ( @$opts['git'][$repo]['url'] == '' )
             {
-                throw new pakeException( "Can not download eZ sources into directory $destdir because it is not empty. Please run task 'clean' to wipe it then retry" );
+                throw new pakeException( "Missing source repo option git:$repo:url in config file" );
             }
-        }
 
-        /// @todo to make successive builds faster - if repo exists already just
-        ///       update it
-        pakeGit::clone_repository( $opts['git']['url'], $destdir );
+            /// @todo to make successive builds faster - if repo exists already just
+            ///       update it
+            $r = pakeGit::clone_repository( $opts['git'][$repo]['url'], $destdir . "/$repo" );
 
-        if ( @$opts['git']['branch'] != '' )
-        {
-            pake_echo( "Using GIT branch {$opts['git']['branch']}" );
-            pakeGit::checkout_repo( $destdir, $opts['git']['branch'] );
-        }
-
-
-        /**
-         * Phase 2: eZ Publish 5
-         */
-        pake_echo( 'Fetching code from eZ Publish 5 GIT repository' );
-
-        $destdir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublish5ProjName();
-
-        if ( @$opts['git5']['url'] == '' )
-        {
-            throw new pakeException( "Missing source repo option git5:url in config file" );
-        }
-
-        // if target dir is not empty, force user to run a "clean"
-        if ( is_dir( $destdir ) )
-        {
-            $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
-            if ( count( $leftovers ) )
+            if ( @$opts['git'][$repo]['branch'] != '' )
             {
-                throw new pakeException( "Can not download eZ Publish 5 sources into directory $destdir because it is not empty. Please run task 'clean' to wipe it then retry" );
+                pake_echo( "Using GIT branch {$opts['git'][$repo]['branch']}" );
+                $r->checkout( $opts['git'][$repo]['branch'] );
             }
-        }
 
-        /// @todo to make successive builds faster - if repo exists already just
-        ///       update it
-        pakeGit::clone_repository( $opts['git5']['url'], $destdir );
-
-        if ( @$opts['git5']['branch'] != '' )
-        {
-            pake_echo( "Using GIT branch {$opts['git5']['branch']}" );
-            pakeGit::checkout_repo( $destdir, $opts['git5']['branch'] );
-        }
-
-        /**
-         * Phase 3: eZ Publish API ++ (ezp-next)
-         */
-        pake_echo( 'Fetching code from eZ Publish API GIT repository' );
-
-        $destdir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublishApiProjName();
-
-        if ( @$opts['gitApi']['url'] == '' )
-        {
-            throw new pakeException( "Missing source repo option gitApi:url in config file" );
-        }
-
-        // if target dir is not empty, force user to run a "clean"
-        if ( is_dir( $destdir ) )
-        {
-            $leftovers = pakeFinder::type( 'any' )->maxdepth( 1 )->in( $destdir );
-            if ( count( $leftovers ) )
-            {
-                throw new pakeException( "Can not download eZ Publish API sources into directory $destdir because it is not empty. Please run task 'clean' to wipe it then retry" );
-            }
-        }
-
-        /// @todo to make successive builds faster - if repo exists already just
-        ///       update it
-        pakeGit::clone_repository( $opts['gitApi']['url'], $destdir );
-
-        if ( @$opts['gitApi']['branch'] != '' )
-        {
-            pake_echo( "Using GIT branch {$opts['gitApi']['branch']}" );
-            pakeGit::checkout_repo( $destdir, $opts['gitApi']['branch'] );
         }
     }
 }
@@ -197,11 +134,11 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
         return;
     }
 
-    if ( @$opts['ci-repo']['local-path'] == '' )
+    if ( @$opts['git']['ci-repo']['local-path'] == '' )
     {
-        throw new pakeException( "Missing option ci-repo:local-path in config file: can not download CI repo" );
+        throw new pakeException( "Missing option git:ci-repo:local-path in config file: can not download CI repo" );
     }
-    $destdir = $opts['ci-repo']['local-path'];
+    $destdir = $opts['git']['ci-repo']['local-path'];
 
     pake_echo( 'Fetching sources from CI git repository' );
 
@@ -217,15 +154,15 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     /// @todo to make successive builds faster - if repo exists already just
     ///       update it
-    $repo = pakeGit::clone_repository( $opts['ci-repo']['git-url'], $destdir );
+    $repo = pakeGit::clone_repository( $opts['git']['ci-repo']['url'], $destdir );
 
     // q: is this really needed?
-    if ( $opts['ci-repo']['git-branch'] != '' )
+    if ( $opts['git']['ci-repo']['branch'] != '' )
     {
-        $repo->checkout( $opts['ci-repo']['git-branch'] );
+        $repo->checkout( $opts['ci-repo']['branch'] );
     }
 
-    /// @todo set up username and password in $opts['ci-repo']['git-branch']/.git/config
+    /// @todo set up username and password in $opts['git']['ci-repo']['branch']/.git/config
     ///       from either config file or interactive mode
 
     pake_echo( "The CI git repo has been set up in $destdir\n" .
@@ -251,121 +188,46 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args );
     $git = escapeshellarg( pake_which( 'git' ) );
 
-    /**
-     * Phase 1: eZ Publish Legacy Stack (LS)
-     */
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
-
-    // 1. check if build dir is correctly linked to source git repo
-    /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
-    $originf = false;
-    foreach( $remotesArray as $remote )
+    foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
-        if ( strpos( $remote, $opts['git']['url'] . ' (fetch)' ) !== false )
+        pake_echo( "Updating source code from eZ Publish $repo GIT repository" );
+
+        $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName() . "/$repo";
+
+        // 1. check if build dir is correctly linked to source git repo
+        /// @todo use pakeGit::remotes() instead of this code
+        $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
+        $originf = false;
+        foreach( $remotesArray as $remote )
         {
-            $originf = explode( ' ', $remote );
-            $originf = $originf[0];
+            if ( strpos( $remote, $opts['git'][$repo]['url'] . ' (fetch)' ) !== false )
+            {
+                $originf = explode( ' ', $remote );
+                $originf = $originf[0];
+            }
         }
-    }
-    if ( !$originf )
-    {
-        throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['git']['url']}" );
-    }
-
-    // 2. pull and move to correct branch
-    $repo = new pakeGit( $rootpath );
-
-    /// @todo test that the branch switch does not fail
-    if ( @$opts['git']['branch'] != '' )
-    {
-        $repo->checkout( $opts['git']['branch'] );
-    }
-    else
-    {
-        $repo->checkout( 'master' );
-    }
-
-    /// @todo test that the pull does not fail
-    $repo->pull();
-
-
-    /**
-     * Phase 2: eZ Publish 5
-     */
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublish5ProjName();
-
-    // 1. check if build dir is correctly linked to source git repo
-    /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
-    $originf = false;
-    foreach( $remotesArray as $remote )
-    {
-        if ( strpos( $remote, $opts['git5']['url'] . ' (fetch)' ) !== false )
+        if ( !$originf )
         {
-            $originf = explode( ' ', $remote );
-            $originf = $originf[0];
+            throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['git'][$repo]['url']}" );
         }
-    }
-    if ( !$originf )
-    {
-        throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['git5']['url']}" );
-    }
 
-    // 2. pull and move to correct branch
-    $repo = new pakeGit( $rootpath );
+        // 2. pull and move to correct branch
+        $repo = new pakeGit( $rootpath );
 
-    /// @todo test that the branch switch does not fail
-    if ( @$opts['git5']['branch'] != '' )
-    {
-        $repo->checkout( $opts['git5']['branch'] );
-    }
-    else
-    {
-        $repo->checkout( 'master' );
-    }
-
-    /// @todo test that the pull does not fail
-    $repo->pull();
-
-
-    /**
-     * Phase 3: eZ Publish API ++ (ezp-next)
-     */
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublishApiProjName();
-
-    // 1. check if build dir is correctly linked to source git repo
-    /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
-    $originf = false;
-    foreach( $remotesArray as $remote )
-    {
-        if ( strpos( $remote, $opts['gitApi']['url'] . ' (fetch)' ) !== false )
+        /// @todo test that the branch switch does not fail
+        if ( @$opts['git'][$repo]['branch'] != '' )
         {
-            $originf = explode( ' ', $remote );
-            $originf = $originf[0];
+            $repo->checkout( $opts['git'][$repo]['branch'] );
         }
-    }
-    if ( !$originf )
-    {
-        throw new pakeException( "Build dir $rootpath does not seem to be linked to git repo {$opts['gitApi']['url']}" );
-    }
+        else
+        {
+            $repo->checkout( 'master' );
+        }
 
-    // 2. pull and move to correct branch
-    $repo = new pakeGit( $rootpath );
+        /// @todo test that the pull does not fail
+        $repo->pull();
 
-    /// @todo test that the branch switch does not fail
-    if ( @$opts['gitApi']['branch'] != '' )
-    {
-        $repo->checkout( $opts['gitApi']['branch'] );
     }
-    else
-    {
-        $repo->checkout( 'master' );
-    }
-
-    /// @todo test that the pull does not fail
-    $repo->pull();
 }
 
 /**
@@ -378,124 +240,64 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
 
-    /**
-     * Phase 1: eZ Publish Legacy Stack (LS)
-     */
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
-
-    if ( isset( $opts['version']['previous']['git-revision'] ) )
+    $changelogEntries = array();
+    foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
-        $previousrev = $opts['version']['previous']['git-revision'];
-    }
-    else
-    {
-        $prevname = eZPCPBuilder::previousVersionName( $opts );
-        $previousrev = eZPCPBuilder::getPreviousRevision( $prevname, $opts['jenkins']['job'], $opts );
-    }
 
-    $changelogEntrieseZPublishLegacyStack = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
+        $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName() . "/$repo";
 
+        if ( isset( $opts['version']['previous'][$repo]['git-revision'] ) )
+        {
+            $previousrev = $opts['version']['previous'][$repo]['git-revision'];
+        }
+        else
+        {
+            $prevname = eZPCPBuilder::previousVersionName( $opts );
+            if ( $opts['jenkins']['jobs'][$repo] )
+            {
+                pake_echo ( "Getting git revision of previous release from Jenkins for repo $repo" );
 
-    /**
-     * Phase 2: eZ Publish 5
-     */
-    $rootpath5 = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublish5ProjName();
+                $previousrev = eZPCPBuilder::getPreviousRevision( $prevname, $opts['jenkins']['jobs'][$repo], $opts, $repo );
+            }
+            else
+            {
+                throw new pakeException( "Previous revision number of $repo repo MUST be given in the config file: version:previous:$repo:git-revision" );
+            }
+        }
 
-    if ( isset( $opts['version']['previous5']['git-revision'] ) )
-    {
-        $previousrev = $opts['version']['previous5']['git-revision'];
-    }
-    else
-    {
-        $prevname = eZPCPBuilder::previousVersionName( $opts );
-        $previousrev = eZPCPBuilder::getPreviousRevision( $prevname, $opts['jenkins']['job5'], $opts );
+        pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
+        pake_echo ( "Extracting changelog entries from git log" );
+        $changelogEntries[$repo] = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath . "/$repo", $previousrev );
     }
 
-    $changelogEntrieseZPublish5 = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath5, $previousrev );
-
-    /**
-     * Phase 3: eZ Publish API ++ (ezp-next)
-     *
-     * @note: The previous revision MUST be known from the configuration
-     *        as the build system is not building ezp-next per se.
-     */
-    $rootpathApi = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getEzPublishApiProjName();
-
-    if ( isset( $opts['version']['previousApi']['git-revision'] ) )
+    pake_echo ( "Generating changelog in txt format" );
+    foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
-        $previousrev = $opts['version']['previousApi']['git-revision'];
-    }
-    else
-    {
-        throw new pakeException( "Previous revision number of ezp-next/API repo MUST be given in the config file ( ['version']['previousApi']['git-revision'] )" );
+
+        /// @todo handle reverts ? Or process manually ?
+        // $ezpublish5Header = "eZ Publish 5\n------------\n";
+        $ezpublishHeader[$repo] = eZPCPBuilder::getEzPublishHeader( $repo );
+        $ezpublishHeader[$repo] .= "\n" . str_pad( '', strlen( $ezpublish5Header ), '-' ) . "\n";
     }
 
-    $changelogEntrieseZPublishApi = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpathApi, $previousrev );
 
+    foreach( array(
+        'bugfixesMatches' => 'Bugfixes',
+        'enhancementsMatches' => 'Enhancements',
+        'pullreqsMatches' => 'Pull requests',
+        'unmatchedEntries' => 'Miscellaneous'
+        ) as $type => $name )
+    {
+        $out = "$name\n" . str_pad( '', strlen( $name ), '=' ) . "\n";
+        foreach( array( 'community', 'legacy', 'kernel' )  as $repo )
+        {
+            $out .= $ezpublish5Header;
+            $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntries[$repo][$type] ) );
+            $out .= "\n\n";
+        }
+    }
 
-    /// @todo handle reverts ? Or process manually ?
-    // $ezpublish5Header = "eZ Publish 5\n------------\n";
-    $ezpublish5Header = eZPCPBuilder::getEzPublish5Header();
-    $ezpublish5Header .= "\n" . str_pad( '', strlen( $ezpublish5Header ), '-' ) . "\n";
-
-    // $ezpublishLegacyHeader = "eZ Publish Legacy Stack (LS)\n----------------------------\n";
-    $ezpublishLegacyHeader = eZPCPBuilder::getEzPublishLegacyHeader();
-    $ezpublishLegacyHeader .= "\n" . str_pad( '', strlen( $ezpublishLegacyHeader ), '-' ) . "\n";
-
-    // $ezpublishApiHeader = "eZ Publish Kernel & APIs\n------------------------\n";
-    $ezpublishApiHeader = eZPCPBuilder::getEzPublishApiHeader();
-    $ezpublishApiHeader .= "\n" . str_pad( '', strlen( $ezpublishApiHeader ), '-' ) . "\n";
-
-
-    $out = "Bugfixes\n========\n";
-    $out .= $ezpublish5Header;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublish5['bugfixesMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishLegacyHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishLegacyStack['bugfixesMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishApiHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishApi['bugfixesMatches'] ) );
-    $out .= "\n\n";
-
-
-    $out .= "Enhancements\n============\n";
-    $out .= $ezpublish5Header;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublish5['enhancementsMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishLegacyHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishLegacyStack['enhancementsMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishApiHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishApi['enhancementsMatches'] ) );
-    $out .= "\n\n";
-
-
-    $out .= "Pull requests\n=============\n";
-    $out .= $ezpublish5Header;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublish5['pullreqsMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishLegacyHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishLegacyStack['pullreqsMatches'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishApiHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishApi['pullreqsMatches'] ) );
-    $out .= "\n\n";
-
-
-    $out .= "Miscellaneous\n=============\n";
-    $out .= $ezpublish5Header;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublish5['unmatchedEntries'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishLegacyHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishLegacyStack['unmatchedEntries'] ) );
-    $out .= "\n\n";
-    $out .= $ezpublishApiHeader;
-    $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntrieseZPublishApi['unmatchedEntries'] ) );
-    $out .= "\n\n";
-
-
-    $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $changelogdir = $opts['build']['dir'] . '/source/legacy/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
     pake_mkdirs( $changelogdir );
     pake_write_file( $changelogdir . '/' . $filename , $out, true );
@@ -682,29 +484,31 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     // and a recent pakeGit class is used ( > pake 1.6.3)
     // pakeGit::$needs_work_tree_workaround = true;
 
+    pake_echo( "Updating source code from CI GIT repository" );
+
     $opts = eZPCPBuilder::getOpts( $args );
     $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
 
-    $cipath = $opts['ci-repo']['local-path'];
+    $cipath = $opts['git']['ci-repo']['local-path'];
 
     $git = escapeshellarg( pake_which( 'git' ) );
 
     // test that we're on the good git
     /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
+    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . ' ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
     $originp = false;
     $originf = false;
 
     foreach( $remotesArray as $remote )
     {
-        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (push)' ) !== false )
+        if ( strpos( $remote, $opts['git']['ci-repo']['url'] . ' (push)' ) !== false )
         {
             $originp = preg_split( '/[ \t]/', $remote );
             $originp = $originp[0];
             // dirty, dirty hack
             $GLOBALS['originp'] = $originp;
         }
-        if ( strpos( $remote, $opts['ci-repo']['git-url'] . ' (fetch)' ) !== false )
+        if ( strpos( $remote, $opts['git']['ci-repo']['url'] . ' (fetch)' ) !== false )
         {
             $originf = preg_split( '/[ \t]/', $remote );
             $originf = $originf[0];
@@ -712,14 +516,14 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     }
     if ( !$originp || !$originf )
     {
-        throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['ci-repo']['git-url']}" );
+        throw new pakeException( "CI repo dir $cipath does not seem to be linked to git repo {$opts['git']['ci-repo']['url']}" );
     }
     $repo = new pakeGit( $cipath );
 
-    if ( $opts['ci-repo']['git-branch'] != '' )
+    if ( $opts['git']['ci-repo']['branch'] != '' )
     {
         /// @todo test that the branch switch does not fail
-        $repo->checkout( $opts['ci-repo']['git-branch'] );
+        $repo->checkout( $opts['git']['ci-repo']['branch'] );
     }
 
     /// @todo test that the pull does not fail: do a git status and check for differences
@@ -745,7 +549,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // start work on the ci repo:
 
-    $cipath = $opts['ci-repo']['local-path'];
+    $cipath = $opts['git']['ci-repo']['local-path'];
     $git = escapeshellarg( pake_which( 'git' ) );
 
     // 1. update ci repo - moved to a separate task
@@ -755,10 +559,10 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     $repo = new pakeGit( $cipath );
 
-    if ( $opts['ci-repo']['git-path'] != '' )
+    if ( $opts['git']['ci-repo']['path'] != '' )
     {
-        $cipath .= '/' . $opts['ci-repo']['git-path'];
-        $localcipath = $opts['ci-repo']['git-path'] . '/';
+        $cipath .= '/' . $opts['git']['ci-repo']['path'];
+        $localcipath = $opts['git']['ci-repo']['path'] . '/';
     }
     else
     {
@@ -791,7 +595,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $patcherror = false;
     try
     {
-        $patchResult = pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $patchfile1 );
+        $patchResult = pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $patchfile1 );
     }
     catch( Exception $e )
     {
@@ -884,12 +688,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
 
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
 
     /// unstage the file
-    pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
 
     // 4. add new changelog file
     /// calculate sequence nr.
@@ -918,7 +722,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
-    pake_sh( 'cd ' . escapeshellarg( $cipath ) . " && $git push $originp {$opts['ci-repo']['git-branch']}:{$opts['ci-repo']['git-branch']}" );
+    pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . ' ' . escapeshellarg( $cipath ) . " && $git push $originp {$opts['git']['ci-repo']['branch']}:{$opts['git']['ci-repo']['branch']}" );
 }
 
 function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
@@ -948,14 +752,14 @@ function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
     // trigger build
     /// @todo Improve this: jenkins gives us an http 302 => html page,
     ///       so far I have found no way to get back a json-encoded result
-    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job'] . '/build?delay=0sec', $opts );
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['jobs']['legacy'] . '/build?delay=0sec', $opts );
     // "scrape" the number of the currently executing build, and hope it is the one we triggered.
     // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
     $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
     if ( !$ok )
     {
         // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
-        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['job'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
+        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['jobs']['legacy'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
         if ( !$ok )
         {
             throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
@@ -964,13 +768,13 @@ function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
     $buildnr = $matches[1];
 
     /*
-       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json';
+       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['jobs']['legacy'] . '/api/json';
        $out = json_decode( pake_read_file( $buildurl ), true );
        // $buildnr = ...
     */
 
     pake_echo( "Build $buildnr triggered. Starting polling..." );
-    $buildurl = 'job/' . $opts['jenkins']['job'] . '/' . $buildnr . '/api/json';
+    $buildurl = 'job/' . $opts['jenkins']['jobs']['legacy'] . '/' . $buildnr . '/api/json';
     while ( true )
     {
         sleep( 5 );
@@ -1011,14 +815,14 @@ function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
     // trigger build
     /// @todo Improve this: jenkins gives us an http 302 => html page,
     ///       so far I have found no way to get back a json-encoded result
-    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job5'] . '/buildWithParameters?delay=0sec&VERSION=' . $opts['version']['alias'], $opts );
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['jobs']['community'] . '/buildWithParameters?delay=0sec&VERSION=' . $opts['version']['alias'], $opts );
     // "scrape" the number of the currently executing build, and hope it is the one we triggered.
     // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
     $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
     if ( !$ok )
     {
         // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
-        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['job5'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
+        $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['jobs']['community'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
         if ( !$ok )
         {
             throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
@@ -1027,13 +831,13 @@ function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
     $buildnr = $matches[1];
 
     /*
-       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['job'] . '/api/json';
+       $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['jobs']['community'] . '/api/json';
        $out = json_decode( pake_read_file( $buildurl ), true );
        // $buildnr = ...
     */
 
     pake_echo( "Build $buildnr triggered. Starting polling..." );
-    $buildurl = 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/api/json';
+    $buildurl = 'job/' . $opts['jenkins']['jobs']['community'] . '/' . $buildnr . '/api/json';
     while ( true )
     {
         sleep( 5 );
@@ -1220,7 +1024,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
 
     // get list of files from the build
-    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/api/json', $opts );
+    $out = eZPCPBuilder::jenkinsCall( 'job/' . $opts['jenkins']['jobs']['community'] . '/' . $buildnr . '/api/json', $opts );
     if ( !is_array( $out ) || !is_array( @$out['artifacts'] ) )
     {
         pake_echo( 'Error in retrieving build description from Jenkins or no artifacts in build' );
@@ -1235,13 +1039,13 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     }
 
     // find the correct variant
-    //$buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['job'] . '/' . $buildnr, $opts );
+    //$buildurl = eZPCPBuilder::jenkinsUrl( 'job/' . $opts['jenkins']['jobs']['community'] . '/' . $buildnr, $opts );
     $fileurl = '';
     foreach( $out['artifacts'] as $artifact )
     {
         if ( substr( $artifact['fileName'], -4 ) == '.bz2' /*&& strpos( $artifact['fileName'], 'with_ezc' ) !== false*/ )
         {
-            $fileurl = 'job/' . $opts['jenkins']['job5'] . '/' . $buildnr . '/artifact/' . $artifact['relativePath'];
+            $fileurl = 'job/' . $opts['jenkins']['jobs']['community'] . '/' . $buildnr . '/artifact/' . $artifact['relativePath'];
             break;
         }
     }
@@ -1268,7 +1072,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     // and unzip eZ into it - in a folder with a specific name
     //$zip = ezcArchive::open( $filename, ezcArchive::BZIP2 );
     //$zip->extract( $rootpath );
-    pake_sh( "cd " . escapeshellarg( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
     $currdir = $currdir[0];
@@ -1553,18 +1357,18 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
 
 /**
 * Class implementing the core logic for our pake tasks
-* @todo separate in another file?
+* @todo separate in another file? Or in 2 classes, one with build logic, one with generic logic
 */
 class eZPCPBuilder
 {
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.3.1';
+    static $version = '0.3.2';
     static $min_pake_version = '1.7.1';
     static $projname = 'ezpublish';
-    static $ezpublish5ProjName = 'ezpublish5';
-    static $ezpublishApiProjName = 'ezpublishApi';
+    //static $ezpublish5ProjName = 'ezpublish5';
+    //static $ezpublishApiProjName = 'ezpublishApi';
 
     // leftover from ezextensionbuilder - currently hardcoded in the class
     static function getProjName()
@@ -1572,31 +1376,15 @@ class eZPCPBuilder
         return self::$projname;
     }
 
-    // leftover from ezextensionbuilder - currently hardcoded in the class
-    static function getEzPublish5ProjName()
+    /// @todo move values to options file
+    public static function getEzPublishHeader( $repo )
     {
-        return self::$ezpublish5ProjName;
-    }
-
-    // leftover from ezextensionbuilder - currently hardcoded in the class
-    static function getEzPublishApiProjName()
-    {
-        return self::$ezpublishApiProjName;
-    }
-
-    public static function getEzPublish5Header()
-    {
-        return "eZ Publish 5";
-    }
-
-    public static function getEzPublishLegacyHeader()
-    {
-        return "eZ Publish Legacy Stack (LS)";
-    }
-
-    public static function getEzPublishApiHeader()
-    {
-        return "eZ Publish Kernel & APIs";
+        $names = array(
+            'legacy' => 'eZ Publish Legacy Stack (LS)',
+            'kernel' => 'eZ Publish 5',
+            'community' => 'eZ Publish Kernel & APIs'
+        );
+        return $names[$repo];
     }
 
     // taken from config file
@@ -1645,6 +1433,7 @@ class eZPCPBuilder
         if ( file_exists( $useroptsfile ) )
         {
             $useroptions = pakeYaml::loadFile( $useroptsfile );
+            //var_dump( $useroptions );
             self::recursivemerge( $options, $useroptions );
         }
 
@@ -1968,7 +1757,7 @@ class eZPCPBuilder
 
             /// @todo replace with pakegit::log
             $git = escapeshellarg( pake_which( 'git' ) );
-            $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( 'cd ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
+            $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
             $changelogArray = array_map( 'trim', $changelogArray );
             $changelogText = implode( "\n", $changelogArray );
@@ -2093,6 +1882,15 @@ class eZPCPBuilder
                 $a[$child] = $value; //add if not exists
             }
         }
+    }
+
+    static function getCdCmd( $dir )
+    {
+        if ( $dir[1] == ':' )
+        {
+            return 'cd /D';
+        }
+        return 'cd';
     }
 }
 
