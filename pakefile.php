@@ -10,7 +10,8 @@
  * https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB
  *
  * @author    G. Giunta
- * @copyright (C) G. Giunta 2011-2012
+ * @author    N. Pastorino
+ * @copyright (C) eY Szstems AS 2011-2013
  * @license   code licensed under the GNU GPL 2.0: see README file
  */
 
@@ -1860,7 +1861,7 @@ class eZPCPBuilder
     /// generate name for changelog file.
     static function changelogFilename( $opts )
     {
-        return 'CHANGELOG-' . self::previousVersionName( $opts) . '-to-' . $opts['version']['alias'] . '.txt';
+        return 'CHANGELOG-' . self::previousVersionName( $opts ) . '-to-' . $opts['version']['alias'] . '.txt';
     }
 
     /**
