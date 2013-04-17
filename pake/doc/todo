@@ -4,10 +4,12 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 # global
 
 . finish integration with v5:
-  - the WPI generation has to be reviewed
   - automate checking for status of v5ee and v4 jobs before starting the "merge" job
   - rewrite the shell part of the v5-community task in php
-  - complete changelog generation taking into account all 3 repos => needs to tag the other 2 builds
+  - let the script automatically grab git revisions of all 3 repos from jenkins jobs
+  - let the script create tags for github repos (see below for details)
+  - complete changelog generation in ezoe xml format (see below for details)
+  - the WPI generation has to be reviewed
 
 . remove usage of ezc for zippping purposes in favour of tar
 
