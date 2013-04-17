@@ -1,7 +1,7 @@
 ### Config. file for the ezpublishbuilder script (rev 0.3.2 and later)
 ###
 ### Note that the script will load as well a 2nd config file (if it exists):
-###  options-ezpublish-user.yaml
+###   options-ezpublish-user.yaml
 ### This allow you to separate sensistive info such as passwords or local info
 ### such as non-standard paths to tools: the -user config file is not stored in
 ### git.
@@ -23,27 +23,28 @@ version:
         name: 2013.1
 
         legacy:
-            # git tag for previous version build of the legac, used in changelog generation.
-            # If empty, this will be calculated by looking up in jenkins a build
+            # git tag for previous version build of the ezpublish legacy repo, used in changelog generation.
+            # If not set, this will be calculated by looking up first for a git tag
+            # named as version number of previous build, then in jenkins a build
             # that has been tagged with the version number of the last build
             # (eg 2012.1 => 2011.12), and then finding the git revision of the build
-            # immediately after that one
+            # immediately after that one.
+            # For the jenkins job tied to this repo, see further down the config file
             #git-revision: 01f529b2ee8afef8fbe723bd3313794c97ea9f93
 
         community:
-            # git tag for previous version build on the ezpublish5 repo, used in changelog generation.
-            # @TODO: Add Jenkins URL at which this SHA1 can be found
-            #        (might be https://ci.ez.no/view/Community/job/ezpublish5/)
+            # git tag for previous version build on the ezpublish community repo, used in changelog generation.
+            # See above for explanations
             #git-revision: 7e8f29ad01c8df0e8815eb80a5f3b61628072821
 
         kernel:
-            # git tag for previous version build on the ezp-next repo, used in changelog generation.
-            # @TODO: Add Jenkins URL at which this SHA1 can be found
+            # git tag for previous version build on the ezpublish kernel, used in changelog generation.
+            # See above for explanations
             git-revision: bdbe486e48a03555f514c463d79c01759d0d9aa8
 
 build:
     # Directory for the build.
-    # In it, the "ezpublish" subdir will be git repo clones of the eZ sources
+    # In it, the "esource/zpublish" subdir will be hosting git repo clones of the eZ sources
     dir: build
 
 dist:
@@ -51,6 +52,7 @@ dist:
     dir: dist
 
 create:
+    # Build products
     mswpipackage: yes
 
     doxygen_doc: yes
@@ -63,7 +65,7 @@ create:
     ezpackage: no
     pearpackage: no
 
-# Source repo (only git usable at the moment - see ezextensionbuilder for other options)
+# Source repos (only git usable at the moment - see ezextensionbuilder for other options)
 git:
     legacy:
         url: git@github.com:ezsystems/ezpublish-legacy.git
@@ -71,14 +73,12 @@ git:
         # in case a different branch is to be used for the build
         #branch:
 
-    # eZ Publish 5 Source repo (only git usable at the moment - see ezextensionbuilder for other options)
     community:
         url: git@github.com:ezsystems/ezpublish-community.git
 
         # in case a different branch is to be used for the build
         #branch:
 
-    # eZ Publish API++ Source repo (only git usable at the moment - see ezextensionbuilder for other options)
     kernel:
         url: git@github.com:ezsystems/ezpublish-kernel.git
 
@@ -101,7 +101,9 @@ jenkins:
     url: https://ci.ez.no
     jobs:
         legacy: ezpublish-full-community
+        # @todo find the exact jobs corresponding to the 3 repos involved
         #community: ezpublish5
+        #kernel:
     # The following is used as auth token if access to Jenkins is protected
     # NB: as of 1/2013, this is enabled on ci.ez.no.
     # To get the api token, log in to jenkins, then go to your user profile page
