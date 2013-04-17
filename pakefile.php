@@ -743,7 +743,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
 
-    ///
+    /// @todo allow the user to specify this on the command line
     if ( $originp == '' )
     {
         pake_echo( "WARNING: Using \"origin\" as name of upstream repo as actual name not found" );
@@ -1086,11 +1086,11 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     // clean up the 'release' dir
     $rootpath = $opts['build']['dir'] . '/release';
     /// @todo this method is a bit slow, should find a faster one
-    pake_remove_dir( $opts['build']['dir'] . '/release' );
+    pake_remove_dir( $rootpath );
 
     // download and unzip the file
     pake_mkdirs( $rootpath );
-    $filename = $rootpath() . '/' .  $artifact['fileName'];
+    $filename = $rootpath . '/' . $artifact['fileName'];
     pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
     //if ( !class_exists( 'ezcArchive' ) )
     //{
@@ -1891,17 +1891,18 @@ class eZPCPBuilder
     */
     static function jenkinsUrl( $url, $opts )
     {
-        if ( $opts['jenkins']['token'] != '' )
+        // Token only used in auth headers
+        /*if ( $opts['jenkins']['apitoken'] != '' )
         {
             if ( strpos( $url, '?' ) !== false )
             {
-                $url .= "&token=" . $opts['jenkins']['token'];
+                $url .= "&token=" . $opts['jenkins']['apitoken'];
             }
             else
             {
-                $url .= "?token=" . $opts['jenkins']['token'];
+                $url .= "?token=" . $opts['jenkins']['apitoken'];
             }
-        }
+        }*/
         return $opts['jenkins']['url'] . str_replace( '//', '/', '/' . $url );
     }
 
@@ -2061,7 +2062,7 @@ pake_task( 'init' );
 
 pake_task( 'init-ci-repo' );
 
-pake_task( 'build', 'init', 'init-ci-repo', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build' );
+pake_task( 'build', 'init', 'init-ci-repo', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build4', 'run-jenkins-build5' );
 
 pake_task( 'update-source' );
 

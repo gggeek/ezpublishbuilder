@@ -102,7 +102,7 @@ jenkins:
     jobs:
         legacy: ezpublish-full-community
         # @todo find the exact jobs corresponding to the 3 repos involved
-        #community: ezpublish5
+        community: ezpublish5-full-community
         #kernel:
     # The following is used as auth token if access to Jenkins is protected
     # NB: as of 1/2013, this is enabled on ci.ez.no.
