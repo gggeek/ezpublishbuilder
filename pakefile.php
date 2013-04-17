@@ -11,7 +11,7 @@
  *
  * @author    G. Giunta
  * @author    N. Pastorino
- * @copyright (C) eY Szstems AS 2011-2013
+ * @copyright (C) eZ Systems AS 2011-2013
  * @license   code licensed under the GNU GPL 2.0: see README file
  */
 
@@ -82,7 +82,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
         $opts = eZPCPBuilder::getOpts( $args );
         pake_mkdirs( $opts['build']['dir'] );
 
-        $destdir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+        $destdir = eZPCPBuilder::geSourceDir( $opts );
     }
 
     // if target dir is not empty, force user to run a "clean"
@@ -109,7 +109,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 
             /// @todo to make successive builds faster - if repo exists already just
             ///       update it
-            $r = pakeGit::clone_repository( $opts['git'][$repo]['url'], $destdir . "/$repo" );
+            $r = pakeGit::clone_repository( $opts['git'][$repo]['url'], eZPCPBuilder::geSourceDir( $opts, $repo ) );
 
             if ( @$opts['git'][$repo]['branch'] != '' )
             {
@@ -129,7 +129,7 @@ function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args );
 
     $skip_init = @$cliopts['skip-init'];
-    if ( $skip-init )
+    if ( $skip_init )
     {
         return;
     }
@@ -186,17 +186,24 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
 function run_update_source( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
+
+    $skip_update = @$cliopts['skip-update-source'];
+    if ( $skip_update )
+    {
+        return;
+    }
+
     $git = escapeshellarg( pake_which( 'git' ) );
 
     foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
         pake_echo( "Updating source code from eZ Publish $repo GIT repository" );
 
-        $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName() . "/$repo";
+        $rootpath = eZPCPBuilder::geSourceDir( $opts, $repo );
 
         // 1. check if build dir is correctly linked to source git repo
         /// @todo use pakeGit::remotes() instead of this code
-        $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git remote -v" ) );
+        $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git remote -v" ) );
         $originf = false;
         foreach( $remotesArray as $remote )
         {
@@ -231,7 +238,7 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Generates a changelog file based on git commit logs.
+ * Generates a changelog file based on git commit logs; options: --skip-update-source
  *
  * The generated file is placed in the correct folder within doc/changelogs.
  * It should be reviewed/edited by hand, then committed with the task "update-ci-repo".
@@ -241,33 +248,41 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args );
 
     $changelogEntries = array();
-    foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
+    foreach( array( 'legacy', 'community', 'kernel' ) as $repo )
     {
 
-        $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName() . "/$repo";
+        $rootpath = eZPCPBuilder::geSourceDir( $opts, $repo );
 
         if ( isset( $opts['version']['previous'][$repo]['git-revision'] ) )
         {
             $previousrev = $opts['version']['previous'][$repo]['git-revision'];
+
+            pake_echo ( "Git revision of previous release ftaken from config file: $previousrev" );
         }
         else
         {
             $prevname = eZPCPBuilder::previousVersionName( $opts );
-            if ( $opts['jenkins']['jobs'][$repo] )
-            {
-                pake_echo ( "Getting git revision of previous release from Jenkins for repo $repo" );
+            //if ( $opts['jenkins']['jobs'][$repo] )
+            //{
+                pake_echo ( "Getting git revision of previous release from GIT or Jenkins for repo $repo" );
 
-                $previousrev = eZPCPBuilder::getPreviousRevision( $prevname, $opts['jenkins']['jobs'][$repo], $opts, $repo );
-            }
-            else
-            {
-                throw new pakeException( "Previous revision number of $repo repo MUST be given in the config file: version:previous:$repo:git-revision" );
-            }
+                $previousrev = eZPCPBuilder::getPreviousRevision( $prevname, $repo, $opts );
+                if ( $previousrev == "" )
+                {
+                    throw new pakeException( "Previous revision number of $repo not found in Git or Jenkins. Please set it manually in version:previous:$repo:git-revision" );
+                }
+            //}
+            //else
+            //{
+            //    throw new pakeException( "Previous revision number of $repo repo MUST be given in the config file: version:previous:$repo:git-revision" );
+            //}
         }
 
         pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
         pake_echo ( "Extracting changelog entries from git log" );
-        $changelogEntries[$repo] = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath . "/$repo", $previousrev );
+        $changelogEntries[$repo] = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
+
+        var_dump( array_keys( $changelogEntries[$repo] ) );
     }
 
     pake_echo ( "Generating changelog in txt format" );
@@ -280,7 +295,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         $ezpublishHeader[$repo] .= "\n" . str_pad( '', strlen( $ezpublish5Header ), '-' ) . "\n";
     }
 
-
+    $out = '';
     foreach( array(
         'bugfixesMatches' => 'Bugfixes',
         'enhancementsMatches' => 'Enhancements',
@@ -288,16 +303,16 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         'unmatchedEntries' => 'Miscellaneous'
         ) as $type => $name )
     {
-        $out = "$name\n" . str_pad( '', strlen( $name ), '=' ) . "\n";
+        $out .= "$name\n" . str_pad( '', strlen( $name ), '=' ) . "\n";
         foreach( array( 'community', 'legacy', 'kernel' )  as $repo )
         {
-            $out .= $ezpublish5Header;
+            $out .= $ezpublishHeader[$repo];
             $out .= join( "\n", eZPCPBuilder::gitLogMatchesAsEntries( $changelogEntries[$repo][$type] ) );
             $out .= "\n\n";
         }
     }
 
-    $changelogdir = $opts['build']['dir'] . '/source/legacy/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $changelogdir = eZPCPBuilder::geSourceDir( $opts, 'legacy' ) . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
     pake_mkdirs( $changelogdir );
     pake_write_file( $changelogdir . '/' . $filename , $out, true );
@@ -323,7 +338,7 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::geSourceDir( $opts );
     $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
@@ -422,7 +437,7 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
 function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() )
 {
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::geSourceDir( $opts );
     $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
@@ -487,15 +502,13 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     pake_echo( "Updating source code from CI GIT repository" );
 
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
-
-    $cipath = $opts['git']['ci-repo']['local-path'];
+    $cipath = eZPCPBuilder::geSourceDir( $opts, 'ci-repo' );
 
     $git = escapeshellarg( pake_which( 'git' ) );
 
     // test that we're on the good git
     /// @todo use pakeGit::remotes() instead of this code
-    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . ' ' . escapeshellarg( $cipath ) . " && $git remote -v" ) );
+    $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . " && $git remote -v" ) );
     $originp = false;
     $originf = false;
 
@@ -545,11 +558,11 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // pakeGit::$needs_work_tree_workaround = true;
 
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+    $rootpath = eZPCPBuilder::geSourceDir( $opts );
 
     // start work on the ci repo:
 
-    $cipath = $opts['git']['ci-repo']['local-path'];
+    $cipath = eZPCPBuilder::geSourceDir( $opts, 'ci-repo' );
     $git = escapeshellarg( pake_which( 'git' ) );
 
     // 1. update ci repo - moved to a separate task
@@ -595,7 +608,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $patcherror = false;
     try
     {
-        $patchResult = pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $patch --dry-run -p0 < " . $patchfile1 );
+        $patchResult = pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $patch --dry-run -p0 < " . $patchfile1 );
     }
     catch( Exception $e )
     {
@@ -688,12 +701,12 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     $absrootpath = dirname( $absrootpath[0] );
     $difffile = $absrootpath . '/' . $opts['version']['alias'] . '_patch_fix_changelog.diff';
 
-    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git add " . escapeshellarg( $changelogdir ) );
 
-    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git diff --no-prefix --staged -- " . escapeshellarg( $changelogdir ) . " > " . escapeshellarg( $difffile ) );
 
     /// unstage the file
-    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git reset HEAD --" );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git reset HEAD --" );
 
     // 4. add new changelog file
     /// calculate sequence nr.
@@ -722,7 +735,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
 
     // 5. commit changes and push to upstream
     $repo->commit( 'Prepare files for build of CP ' . $opts['version']['alias'] );
-    pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . ' ' . escapeshellarg( $cipath ) . " && $git push $originp {$opts['git']['ci-repo']['branch']}:{$opts['git']['ci-repo']['branch']}" );
+    pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . " && $git push $originp {$opts['git']['ci-repo']['branch']}:{$opts['git']['ci-repo']['branch']}" );
 }
 
 function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
@@ -1072,7 +1085,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     // and unzip eZ into it - in a folder with a specific name
     //$zip = ezcArchive::open( $filename, ezcArchive::BZIP2 );
     //$zip->extract( $rootpath );
-    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
     $currdir = $currdir[0];
@@ -1357,7 +1370,7 @@ function run_tool_upgrade( $task=null, $args=array(), $cliopts=array() )
 
 /**
 * Class implementing the core logic for our pake tasks
-* @todo separate in another file? Or in 2 classes, one with build logic, one with generic logic
+* @todo separate in another file? Or at least in 2 classes, one with build logic, one with generic logic
 */
 class eZPCPBuilder
 {
@@ -1374,17 +1387,6 @@ class eZPCPBuilder
     static function getProjName()
     {
         return self::$projname;
-    }
-
-    /// @todo move values to options file
-    public static function getEzPublishHeader( $repo )
-    {
-        $names = array(
-            'legacy' => 'eZ Publish Legacy Stack (LS)',
-            'kernel' => 'eZ Publish 5',
-            'community' => 'eZ Publish Kernel & APIs'
-        );
-        return $names[$repo];
     }
 
     // taken from config file
@@ -1526,7 +1528,7 @@ class eZPCPBuilder
     }
 
     /**
-    * Checks the latest version available online
+    * Checks the latest version available online of the script itself
     * @return string the version nr. or the new version of the file (ie. its contents) , depending on input param (false in case of error)
     */
     static function latestVersion( $getfile=false )
@@ -1611,6 +1613,31 @@ class eZPCPBuilder
         pake_echo_action( 'file+', $archivefile );
     }
 
+    /// @todo move values to options file?
+    public static function getEzPublishHeader( $repo )
+    {
+        $names = array(
+            'legacy' => 'eZ Publish Legacy Stack (LS)',
+            'kernel' => 'eZ Publish 5',
+            'community' => 'eZ Publish Kernel & APIs'
+        );
+        return $names[$repo];
+    }
+
+    public static function geSourceDir( $opts, $repo = '' )
+    {
+        if ( isset( $opts['git'][$repo]['local-path'] ) )
+        {
+            return $opts['git'][$repo]['local-path'];
+        }
+        $dir = $opts['build']['dir'] . '/source/' . eZPCPBuilder::getProjName();
+        if ( $repo != '' )
+        {
+            $dir .= "/$repo";
+        }
+        return $dir;
+    }
+
     /**
      * Converts the matched lines from git log to changelog lines.
      * NB: this function is only parked here as a kind of "namespace", might find a better place fort it
@@ -1625,7 +1652,7 @@ class eZPCPBuilder
         if ( isset( $matches[1] ) and !is_array( $matches[1] ) )
         {
             // Handling the "Unmatched Entries"
-            $entries = $matches;
+            $entries = array_unique( $matches );
         }
         else
         {
@@ -1640,7 +1667,11 @@ class eZPCPBuilder
             // format
             foreach ( $indexedItems as $id => $text )
             {
-                $entries[] = "- $id: $text";
+                if ( substr( $text, 0, 2 ) == '- ' )
+                {
+                    $text = substr( $text, 2 );
+                }
+                $entries[] = "- $id: " . ltrim( $text );
             }
         }
 
@@ -1689,17 +1720,47 @@ class eZPCPBuilder
     }
 
     /**
+     * Tries to infer name of git revision used for last build, by looking
+     *   1st in git tags
+     *   2nd in jenkins builds info
+     * Note: assumes source dir is tied to correct git repo
+     *
      * @param $prevName Previous build name. Ex: "2012.12"
-     * @param $jenkinsJobsName Name of the Jenkins job used to extract the previous rev. Ex: "ezpublish-full-community"
+     * @param $repo repo name
      * @param $opts The Pake options
      * @return string The previous revision (git SHA1) or an empty string on failure.
      */
-    static function getPreviousRevision( $prevName, $jenkinsJobsName, $opts )
+    static function getPreviousRevision( $prevName, $repo, $opts )
     {
         $previousrev = '';
         pake_echo( "Previous release assumed to be $prevName" );
+
+        pake_echo( "Looking up corresponding rev. number in git tags" );
+
+        $rootpath = eZPCPBuilder::geSourceDir( $opts, $repo );
+        $git = escapeshellarg( pake_which( 'git' ) );
+
+        $tagArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git show-ref --tags" ) );
+        $previousbuild = false;
+        foreach( $tagArray as $tagLine )
+        {
+            if ( strpos( $tagLine, $prevName ) !== false )
+            {
+                $previousbuild = explode( ' ', $tagLine );
+
+                pake_echo( "Release $prevName found in GIT tag $previousbuild[1], corresponding to git rev. $previousbuild[0]" );
+
+                return $previousbuild[0];
+            }
+        }
+
+        if ( !isset ( $opts['jenkins']['jobs'][$repo] ) )
+            return "";
+
         pake_echo( "Looking up corresponding build number in Jenkins" );
         // find git rev of the build of the previous release on jenkins
+
+        $jenkinsJobsName = $opts['jenkins']['jobs'][$repo];
 
         $out = eZPCPBuilder::jenkinsCall( 'job/' . $jenkinsJobsName . '/api/json?tree=builds[description,number,result,binding]', $opts );
         if ( is_array( $out ) && isset( $out['builds'] ) )
@@ -1749,6 +1810,10 @@ class eZPCPBuilder
     }
 
 
+    /**
+    * Classifies all entries in git changelog as 4 types.
+    * Each entry is returned starting with "- "
+    */
     public static function extractChangelogEntriesFromRepo( $rootpath, $previousrev )
     {
         if ( $previousrev != '' )
@@ -1757,7 +1822,7 @@ class eZPCPBuilder
 
             /// @todo replace with pakegit::log
             $git = escapeshellarg( pake_which( 'git' ) );
-            $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . ' ' . escapeshellarg( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
+            $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
             $changelogArray = array_map( 'trim', $changelogArray );
             $changelogText = implode( "\n", $changelogArray );
@@ -1884,13 +1949,16 @@ class eZPCPBuilder
         }
     }
 
+    /**
+    * Make "cd" work for all cases, even on win
+    */
     static function getCdCmd( $dir )
     {
         if ( $dir[1] == ':' )
         {
-            return 'cd /D';
+            return 'cd /D ' . escapeshellarg( $dir );
         }
-        return 'cd';
+        return 'cd ' . escapeshellarg( $dir );
     }
 }
 

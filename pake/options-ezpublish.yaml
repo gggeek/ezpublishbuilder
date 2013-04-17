@@ -39,7 +39,7 @@ version:
         kernel:
             # git tag for previous version build on the ezp-next repo, used in changelog generation.
             # @TODO: Add Jenkins URL at which this SHA1 can be found
-            #git-revision: d09527beb5786b48f66eb81cc175031394e0b579
+            git-revision: bdbe486e48a03555f514c463d79c01759d0d9aa8
 
 build:
     # Directory for the build.
@@ -101,7 +101,7 @@ jenkins:
     url: https://ci.ez.no
     jobs:
         legacy: ezpublish-full-community
-        community: ezpublish5-full-community
+        #community: ezpublish5
     # The following is used as auth token if access to Jenkins is protected
     # NB: as of 1/2013, this is enabled on ci.ez.no.
     # To get the api token, log in to jenkins, then go to your user profile page
