@@ -312,7 +312,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         }
     }
 
-    $changelogdir = eZPCPBuilder::getSourceDir( $opts, 'legacy' ) . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $changelogdir = eZPCPBuilder::changelogDir( $opts );
     $filename = eZPCPBuilder::changelogFilename( $opts );
     pake_mkdirs( $changelogdir );
     pake_write_file( $changelogdir . '/' . $filename , $out, true );
@@ -337,9 +337,11 @@ function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
  */
 function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
 {
+    pake_echo( "WARNING - experimental" );
+
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = eZPCPBuilder::getSourceDir( $opts );
-    $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $rootpath = eZPCPBuilder::getSourceDir( $opts,'legacy' );
+    $changelogdir = eZPCPBuilder::changelogDir( $opts );
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
     $file = pake_read_file( $changelogdir . '/' . $filename );
@@ -436,9 +438,11 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
  */
 function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() )
 {
+    pake_echo( "WARNING - experimental" );
+
     $opts = eZPCPBuilder::getOpts( $args );
-    $rootpath = eZPCPBuilder::getSourceDir( $opts );
-    $changelogdir = $rootpath . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    $rootpath = eZPCPBuilder::getSourceDir( $opts, 'legacy' );
+    $changelogdir = eZPCPBuilder::changelogDir( $opts );
     $filename = eZPCPBuilder::changelogFilename( $opts );
 
     $file = pake_read_file( $changelogdir . '/' . $filename );
@@ -889,6 +893,37 @@ function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
     {
         throw new pakeException( "Build failed or unknown status" );
     }
+}
+
+/**
+* Pushes to github repositories a tag with the current version name. TO BE TESTED
+*/
+function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    // $> git tag -a -m "Community Project build 2012.11" "2012.11"
+    // $> git  push  --tags
+    $git = escapeshellarg( pake_which( 'git' ) );
+
+    foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
+    {
+        pake_echo( "Adding tag to eZ Publish $repo GIT repository" );
+
+        $rootpath = eZPCPBuilder::getSourceDir( $opts, $repo );
+
+        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git tag -a -m \"Community Project build {$opts['version']['alias']}\" \"{$opts['version']['alias']}\" && $git push --tags " )
+    }
+}
+
+/**
+ * Pushes to Jenkins job builds a tag with the current version name. TO BE DONE
+ */
+function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
+{
+    $opts = eZPCPBuilder::getOpts( $args );
+
+    Throw new pakeException( "This task has yet to be implemented" );
 }
 
 /**
@@ -1693,7 +1728,13 @@ class eZPCPBuilder
         return $entries;
     }
 
-    /// generate name for changelog file.
+    /// Path to dir where changelog file should reside
+    static function changelogDir( $opts )
+    {
+        return self::getSourceDir( $opts, 'legacy' ) . '/doc/changelogs/Community_Project-' . $opts['version']['major'];
+    }
+
+    /// Generate name for changelog file
     static function changelogFilename( $opts )
     {
         return 'CHANGELOG-' . self::previousVersionName( $opts ) . '-to-' . $opts['version']['alias'] . '.txt';
@@ -2079,6 +2120,10 @@ pake_task( 'wait-for-continue' );
 pake_task( 'run-jenkins-build4' );
 
 pake_task( 'run-jenkins-build5' );
+
+pake_task( 'tag-github-repos' );
+
+pake_task( 'tag-jenkins-builds' );
 
 pake_task( 'generate-html-changelog' );
 
