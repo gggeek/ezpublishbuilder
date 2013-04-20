@@ -364,21 +364,21 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
                 $mode = 'github';
                 $htmlfile[] = "</ul>\n<h3>" . $line . "</h3>\n<ul>";
                 break;
-            case eZPCPBuilder::getEzPublish5Header():
+            case eZPCPBuilder::getEzPublishHeader( 'community' ):
                 if ( $mode == "github" )
                 {
                     $githubMode = '5';
                 }
                 $htmlfile[] = "</ul>\n<h4>" . $line . "</h4>\n<ul>";
                 break;
-            case eZPCPBuilder::getEzPublishLegacyHeader():
+            case eZPCPBuilder::getEzPublishHeader(  'legacy' ):
                 if ( $mode == "github" )
                 {
                     $githubMode = 'LS';
                 }
                 $htmlfile[] = "</ul>\n<h4>" . $line . "</h4>\n<ul>";
                 break;
-            case eZPCPBuilder::getEzPublishApiHeader():
+            case eZPCPBuilder::getEzPublishHeader(  'kernel' ):
                 if ( $mode == "github" )
                 {
                     $githubMode = 'Api';
@@ -912,7 +912,7 @@ function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
 
         $rootpath = eZPCPBuilder::getSourceDir( $opts, $repo );
 
-        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git tag -a -m \"Community Project build {$opts['version']['alias']}\" \"{$opts['version']['alias']}\" && $git push --tags " )
+        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git tag -a -m \"Community Project build {$opts['version']['alias']}\" \"{$opts['version']['alias']}\" && $git push --tags " );
     }
 }
 
