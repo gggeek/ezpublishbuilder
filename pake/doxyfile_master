@@ -4,9 +4,9 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "eZ Publish"
 
 ### replaced automatically at end of file
+£££PROJECT_NAME           = "eZ Publish"
 ###PROJECT_NUMBER         =
 ###OUTPUT_DIRECTORY       =
 PROJECT_BRIEF          =
@@ -21,7 +21,7 @@ ABBREVIATE_BRIEF       =
 ALWAYS_DETAILED_SEC    = NO
 INLINE_INHERITED_MEMB  = NO
 FULL_PATH_NAMES        = NO
-STRIP_FROM_PATH        =
+###STRIP_FROM_PATH        =
 STRIP_FROM_INC_PATH    =
 SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = YES
@@ -80,7 +80,7 @@ SORT_BY_SCOPE_NAME     = NO
 STRICT_PROTO_MATCHING  = NO
 GENERATE_TODOLIST      = YES
 GENERATE_TESTLIST      = NO
-GENERATE_BUGLIST       = NO
+GENERATE_BUGLIST       = YES
 GENERATE_DEPRECATEDLIST= YES
 ENABLED_SECTIONS       =
 MAX_INITIALIZER_LINES  = 30
@@ -105,15 +105,15 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =
+###INPUT                  =
 
 # to be changed?
 #INPUT_ENCODING         = latin1
 FILE_PATTERNS          = *.php
 RECURSIVE              = YES
-EXCLUDE                = benchmarks/ extension/ lib/ezc/ settings/ tests/
+###EXCLUDE                = benchmarks/ extension/ lib/ezc/ settings/ tests/
 EXCLUDE_SYMLINKS       = NO
-EXCLUDE_PATTERNS       = */.git/* */.svn/*
+EXCLUDE_PATTERNS       = */.git/* */.svn/*  */Tests/*  */tests/*
 EXCLUDE_SYMBOLS        =
 EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       =
@@ -127,7 +127,8 @@ USE_MDFILE_AS_MAINPAGE =
 #---------------------------------------------------------------------------
 # configuration options related to source browsing
 #---------------------------------------------------------------------------
-SOURCE_BROWSER         = YES
+####SOURCE_BROWSER         = YES
+SOURCE_BROWSER         = NO
 INLINE_SOURCES         = NO
 STRIP_CODE_COMMENTS    = NO
 REFERENCED_BY_RELATION = YES

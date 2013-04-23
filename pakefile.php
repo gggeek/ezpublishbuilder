@@ -927,39 +927,90 @@ function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
- * Generates php-api docs of the build (optionally can be run on pubsvn.ez.no)
+ * Generates php-api docs of the build, for the Legacy Stack (optionally can be run on pubsvn.ez.no)
  *
  * Prerequisite task: dist-init
  * Options:
  *   --doxygen=<...> path to doxygen executable (inc. executable name)
+ *   --docblox=<...> path to docblox install
+ *   --sami=<...> path to sami install
  *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
  *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
  *
  * @todo warn user and abort if target directories for doc are not empty
  * @todo add support for setting path to tools in some config setting
- * @todo generate .tgs and .bz2 of docs instead of .zip
  */
-function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
+function run_generate_apidocs_LS( $task=null, $args=array(), $cliopts=array() )
 {
+    run_generate_apidocs_generic( 'LS', $task, $args, $cliopts );
+}
+
+/**
+ * Generates php-api docs of the build, for the New Stack (optionally can be run on pubsvn.ez.no)
+ *
+ * Prerequisite task: dist-init
+ * Options:
+ *   --doxygen=<...> path to doxygen executable (inc. executable name)
+ *   --docblox=<...> path to docblox install
+ *   --sami=<...> path to sami install
+ *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
+ *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
+ */
+function run_generate_apidocs_NS( $task=null, $args=array(), $cliopts=array() )
+{
+    run_generate_apidocs_generic( 'NS', $task, $args, $cliopts );
+}
+
+function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
+{
+
     $opts = eZPCPBuilder::getOpts( $args );
     $sourcedir = @$cliopts['sourcedir'];
-    if ( $sourcedir == '' )
-    {
-        $sourcedir = $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName();
-    }
     $docsdir = @$cliopts['docsdir'];
-    if ( $docsdir == '' )
+
+
+    switch( $stack)
     {
-        $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName();
+        case 'LS':
+            $excludedirs = $opts['docs']['exclude_dirs']['legacy_stack'];
+            if ( $sourcedir == '' )
+            {
+                $sourcedir = $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName() . '/ezpublish_legacy';
+            }
+            if ( $docsdir == '' )
+            {
+                $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName() . '/ezpublish_legacy';
+            }
+            $files = pakeFinder::type( 'file' )->name( 'autoload.php' )->maxdepth( 0 )->in( $sourcedir );
+            $namesuffix = $opts['docs']['name_suffix']['legacy_stack'];
+            break;
+        default:
+            $excludedirs = $opts['docs']['exclude_dirs']['new_stack'];
+            if ( $sourcedir == '' )
+            {
+                $sourcedir = $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName();
+            }
+            if ( $docsdir == '' )
+            {
+                $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName() . '/ezpublish';
+            }
+            $files = pakeFinder::type( 'file' )->name( 'autoload.php' )->maxdepth( 0 )->in( $sourcedir . '/ezpublish' );
+            $namesuffix = $opts['docs']['name_suffix']['new_stack'];
     }
 
-    if ( $opts['create']['doxygen_doc'] || $opts['create']['docblox_doc'] || $opts['create']['phpdoc_doc'] )
+    if ( $opts['create']['doxygen_doc'] || $opts['create']['docblox_doc'] || $opts['create']['phpdoc_doc']  || $opts['create']['sami_doc'] )
     {
-        $files = pakeFinder::type( 'file' )->name( 'index.php' )->maxdepth( 0 )->in( $sourcedir );
         if ( !count( $files ) )
         {
             throw new pakeException( "Can not generate documentation: no sources found in $sourcedir" );
         }
+    }
+
+    $excludedirs = explode( ' ', $excludedirs );
+
+    if ( $namesuffix != '' )
+    {
+        $namesuffix = ' ' . $namesuffix;
     }
 
     if ( $opts['create']['doxygen_doc'] )
@@ -971,16 +1022,22 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
             $doxygen = 'doxygen';
         }
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
+        $excludes = '';
+        foreach( $excludedirs as $excluded )
+        {
+            $excludes .= "$sourcedir/$excluded ";
+        }
         pake_copy( 'pake/doxyfile_master', $doxyfile, array( 'override' => true ) );
         file_put_contents( $doxyfile,
-           "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName() .
+           "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName() . $namesuffix .
            "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
            "\nOUTPUT_DIRECTORY = " . $docsdir . '/doxygen' .
            "\nINPUT = " . $sourcedir .
-           "\nEXCLUDE = " . $sourcedir . '/settings' . // ' ' . $sourcedir . '/lib/ezc' . exclude more ?
+           "\nEXCLUDE = " . $excludes .
            "\nSTRIP_FROM_PATH = " . $sourcedir, FILE_APPEND );
         pake_mkdirs( $docsdir . '/doxygen' );
-        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) . ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
+        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) .
+            ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
 
         // test that there are any doc files created
         $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/doxygen/html' );
@@ -991,9 +1048,20 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         // zip the docs
 
         /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen.zip';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen';
         $target = $opts['dist']['dir'] . '/' . $filename;
-        eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target, ezcArchive::ZIP, true );
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+        }
     }
 
     if ( $opts['create']['docblox_doc'] )
@@ -1006,8 +1074,8 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         pake_mkdirs( $docsdir . '/docblox/html' );
         $out = pake_sh( 'php ' . escapeshellarg( $docblox ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
-            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
-            ' --ignore benchmarks/,extension/,lib/ezc/,settings/,tests/' .
+            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
+            ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
         /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
 
@@ -1015,13 +1083,29 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/docblox/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/docblox/html" );
+            throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
         }
         // zip the docs
         /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox.zip';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox';
         $target = $opts['dist']['dir'] . '/' . $filename;
-        eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target, ezcArchive::ZIP, true );
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+        }
+    }
+
+    if ( $opts['create']['sami_doc'] )
+    {
+        throw new pakeException( "Sami not yet implemented" );
     }
 
     if ( $opts['create']['phpdoc_doc'] )
@@ -1041,8 +1125,9 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         // phpdoc uses A LOT of memory as well
         $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=2000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
-            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() ) .
-            ' -i benchmarks/,extension/,lib/ezc/,settings/,tests/' .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s' .
+            ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
+            ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ' > ' . escapeshellarg( $docsdir . '/phpdoc/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
         ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
@@ -1051,13 +1136,24 @@ function run_generate_apidocs( $task=null, $args=array(), $cliopts=array() )
         $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/phpdoc/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/phpdoc/html" );
+            throw new pakeException( "Phpdoc did not generate index.html file in $docsdir/phpdoc/html" );
         }
         // zip the docs
         /// @todo create .tgz, .bz2 tarballs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc.zip';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc';
         $target = $opts['dist']['dir'] . '/' . $filename;
-        eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target, ezcArchive::ZIP, true );
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+        }
     }
 }
 
@@ -1433,6 +1529,11 @@ class eZPCPBuilder
     //static $ezpublish5ProjName = 'ezpublish5';
     //static $ezpublishApiProjName = 'ezpublishApi';
 
+    // same values as ezarchive
+    const ZIP = 10;
+    const GZIP = 20;
+    const BZIP2 = 30;
+
     // leftover from ezextensionbuilder - currently hardcoded in the class
     static function getProjName()
     {
@@ -1603,8 +1704,51 @@ class eZPCPBuilder
     * Creates an archive out of a directory.
     * Requires the Zeta Components
     */
-    static function archiveDir( $sourcedir, $archivefile, $archivetype, $no_top_dir=false )
+    static function archiveDir( $sourcedir, $archivefile, $no_top_dir=false )
     {
+
+        // use command-lne tar as ezcomponents do no compress well, and pake
+        // relies on phar
+
+        if( $no_top_dir )
+        {
+            $srcdir = '.';
+            $workdr = $sourcedir;
+        }
+        else
+        {
+            $srcdir = basename( $sourcedir );
+            $workdr = dirname( $sourcedir );
+        }
+
+        $tar = escapeshellarg( pake_which( 'tar' ) );
+
+        if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -7 ) == '.tgz' )
+        {
+            $cmd = "$tar cvf -z";
+        }
+        else if ( substr( $archivefile, -7 ) == '.tar.bz2' )
+        {
+            $cmd = "$tar cvf -j";
+        }
+        else if ( substr( $archivefile, -4 ) == '.tar' )
+        {
+            $cmd = "$tar cvf";
+        }
+        else if ( substr( $archivefile, -4 ) == '.zip' )
+        {
+            $zip = escapeshellarg( pake_which( 'zip' ) );
+            $cmd = "$zip -9 -r";
+        }
+        else
+        {
+            throw new pakeException( "Can not determine archive tpe from flename: $archivefile" );
+        }
+
+        pake_exec( self::getCdCmd( $workdir ) . " && $cmd $archivefile $srcdir" );
+
+        /*
+
         if ( substr( $archivefile, -3 ) == '.gz' )
         {
             $zipext = 'gz';
@@ -1625,6 +1769,7 @@ class eZPCPBuilder
             $zipext = false;
             $target = $archivefile;
         }
+
         $rootpath = str_replace( '\\', '/', realpath( $no_top_dir ? $sourcedir : dirname( $sourcedir ) ) );
         $files = pakeFinder::type( 'any' )->in( $sourcedir );
         // fix for win
@@ -1659,7 +1804,8 @@ class eZPCPBuilder
             fwrite( $fp, file_get_contents( $target ) );
             fclose( $fp );
             unlink( $target );
-        }
+        }*/
+
         pake_echo_action( 'file+', $archivefile );
     }
 
@@ -2131,7 +2277,9 @@ pake_task( 'generate-html-credits' );
 
 pake_task( 'update-version-history' );
 
-pake_task( 'generate-apidocs' );
+pake_task( 'generate-apidocs-LS' );
+
+pake_task( 'generate-apidocs-NS' );
 
 pake_task( 'dist-init' );
 
