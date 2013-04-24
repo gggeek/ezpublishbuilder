@@ -6,12 +6,11 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 . finish integration with v5:
   - automate checking for status of v5ee and v4 jobs before starting the "merge" job
   - rewrite the shell part of the v5-community task in php
-  - let the script automatically grab git revisions of all 3 repos from jenkins jobs
   - let the script create tags for github repos (see below for details)
   - complete changelog generation in ezoe xml format (see below for details)
   - the WPI generation has to be reviewed
 
-. remove usage of ezc for zippping purposes in favour of tar
+. init tasks: set up user info in git for later allowing pushing to upstream repos
 
 . finish task: generate html version of changelog from txt version (test copy+paste it into online editor on share.ez.no)
 

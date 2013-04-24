@@ -1576,7 +1576,7 @@ class eZPCPBuilder
     static $options = null;
     //static $defaultext = null;
     static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
-    static $version = '0.3.2';
+    static $version = '0.4';
     static $min_pake_version = '1.7.1';
     static $projname = 'ezpublish';
     //static $ezpublish5ProjName = 'ezpublish5';
