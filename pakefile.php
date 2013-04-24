@@ -56,15 +56,21 @@ if ( !function_exists( 'run_default' ) )
  */
 function run_default()
 {
-    pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\nSyntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\n  Run: \"php pakefile.php --tasks\" to learn more about available tasks or \"php pakefile.php help\" for more information." );
+    pake_echo ( "eZ Publish Community Project Builder ver." . eZPCPBuilder::$version . "\n" .
+        "Syntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\nRun:\n" .
+        "  \"php pakefile.php --tasks\" to learn more about available tasks,\n" .
+        "  \"php pakefile.php --prereqs\" to list tasks dependencies, or\n" .
+        "  \"php pakefile.php help\" for more information." );
 }
 
 /**
- * Shows the properties for this build file
+ * Shows the properties from current configuration files
+ *
+ * @todo also dump name of config file(s) in use
  */
 function run_show_properties( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     pake_echo ( print_r( $opts, true ) );
 }
 
@@ -79,7 +85,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
 
     if ( ! $skip_init )
     {
-        $opts = eZPCPBuilder::getOpts( $args );
+        $opts = eZPCPBuilder::getOpts( $args, $cliopts );
         pake_mkdirs( $opts['build']['dir'] );
 
         $destdir = eZPCPBuilder::getSourceDir( $opts );
@@ -126,7 +132,7 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
  */
 function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $skip_init = @$cliopts['skip-init'];
     if ( $skip_init )
@@ -185,7 +191,7 @@ function run_build( $task=null, $args=array(), $cliopts=array() )
  */
 function run_update_source( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $skip_update = @$cliopts['skip-update-source'];
     if ( $skip_update )
@@ -245,7 +251,7 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
  */
 function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $changelogEntries = array();
     foreach( array( 'legacy', 'community', 'kernel' ) as $repo )
@@ -281,8 +287,6 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
         pake_echo ( "Extracting changelog entries from git log" );
         $changelogEntries[$repo] = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
-
-        var_dump( array_keys( $changelogEntries[$repo] ) );
     }
 
     pake_echo ( "Generating changelog in txt format" );
@@ -339,7 +343,7 @@ function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array(
 {
     pake_echo( "WARNING - experimental" );
 
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     $rootpath = eZPCPBuilder::getSourceDir( $opts,'legacy' );
     $changelogdir = eZPCPBuilder::changelogDir( $opts );
     $filename = eZPCPBuilder::changelogFilename( $opts );
@@ -440,7 +444,7 @@ function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() 
 {
     pake_echo( "WARNING - experimental" );
 
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     $rootpath = eZPCPBuilder::getSourceDir( $opts, 'legacy' );
     $changelogdir = eZPCPBuilder::changelogDir( $opts );
     $filename = eZPCPBuilder::changelogFilename( $opts );
@@ -503,7 +507,7 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     // and a recent pakeGit class is used ( > pake 1.6.3)
     // pakeGit::$needs_work_tree_workaround = true;
 
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $skip_update = @$cliopts['skip-update-ci-repo-source'];
     if ( $skip_update )
@@ -568,7 +572,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // and a recent pakeGit class is used ( > pake 1.6.3)
     // pakeGit::$needs_work_tree_workaround = true;
 
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     $rootpath = eZPCPBuilder::getSourceDir( $opts, 'legacy' );
 
     // start work on the ci repo:
@@ -775,7 +779,7 @@ function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
  */
 function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     /// Use jenkins Remote Access Api
     /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
@@ -838,7 +842,7 @@ function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
  */
 function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     /// Use jenkins Remote Access Api
     /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
@@ -900,7 +904,7 @@ function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
 */
 function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     // $> git tag -a -m "Community Project build 2012.11" "2012.11"
     // $> git  push  --tags
@@ -921,7 +925,7 @@ function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
  */
 function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     Throw new pakeException( "This task has yet to be implemented" );
 }
@@ -964,12 +968,12 @@ function run_generate_apidocs_NS( $task=null, $args=array(), $cliopts=array() )
 function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
 {
 
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     $sourcedir = @$cliopts['sourcedir'];
     $docsdir = @$cliopts['docsdir'];
 
 
-    switch( $stack)
+    switch( $stack )
     {
         case 'LS':
             $excludedirs = $opts['docs']['exclude_dirs']['legacy_stack'];
@@ -1045,11 +1049,11 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         {
             throw new pakeException( "Doxygen did not generate index.html file in $docsdir/doxygen/html" );
         }
-        // zip the docs
 
-        /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
+        // zip the docs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen';
-        $target = $opts['dist']['dir'] . '/' . $filename;
+        // get absolute path to dist dir
+        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
             eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
@@ -1088,7 +1092,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         // zip the docs
         /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox';
-        $target = $opts['dist']['dir'] . '/' . $filename;
+        $target = realpath( $opts['dist']['dir']) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
             eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
@@ -1141,7 +1145,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         // zip the docs
         /// @todo create .tgz, .bz2 tarballs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc';
-        $target = $opts['dist']['dir'] . '/' . $filename;
+        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
             eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
@@ -1173,7 +1177,7 @@ function run_dist( $task=null, $args=array(), $cliopts=array() )
  */
 function run_dist_init( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $buildnr = @$cliopts['build'];
     if ( $buildnr == '' )
@@ -1245,7 +1249,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
  */
 function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     if ( $opts['create']['mswpipackage'] )
     {
         if ( !class_exists( 'ezcArchive' ) )
@@ -1334,7 +1338,7 @@ function run_update_share( $task=null, $args=array(), $cliopts=array() )
  */
 function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
 
     $public_keyfile = @$cliopts['public-keyfile'];
     $private_keyfile = @$cliopts['private-keyfile'];
@@ -1415,7 +1419,7 @@ function run_all( $task=null, $args=array(), $cliopts=array() )
  */
 function run_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     pake_remove_dir( $opts['build']['dir'] );
 }
 
@@ -1424,7 +1428,7 @@ function run_clean( $task=null, $args=array(), $cliopts=array() )
  */
 function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     pake_remove_dir( $opts['dist']['dir'] );
 }
 
@@ -1433,7 +1437,7 @@ function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
  */
 function run_clean_ci_repo( $task=null, $args=array(), $cliopts=array() )
 {
-    $opts = eZPCPBuilder::getOpts( $args );
+    $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     if ( @$opts['ci-repo']['local-path'] == '' )
     {
         throw new pakeException( "Missing option ci-repo:local-path in config file: can not remove CI repo" );
@@ -1547,20 +1551,29 @@ class eZPCPBuilder
     }
 
     /**
-    * Loads build options from config file.
+    * Loads build options from config file(s)
     * nb: when called with a custom project name, sets it as current for subsequent calls too
-    * @param array $options the 1st option is the version to be built. If given, it overrides the one in the config file
+    * @param array $opts the 1st option is the version to be built. If given, it overrides the one in the config file
+    * @param array $cliopts optional parameters. If "config-file" is set, that will be used instead of options-ezpublish.yaml
     * @return array all the options
     *
     * @todo remove support for a separate project name, as it is leftover from ezextensionbuilder
     */
-    static function getOpts( $opts=array() )
+    static function getOpts( $opts=array(), $cliopts=array() )
     {
         $projname = self::getProjName();
         $projversion = @$opts[0];
+        if ( isset( $cliopts['config-file'] ) )
+        {
+            $cfgfile = $cliopts['config-file'];
+        }
+        else
+        {
+            $cfgfile  ="pake/options-$projname.yaml";
+        }
         if ( !isset( self::$options[$projname] ) || !is_array( self::$options[$projname] ) )
         {
-            self::loadConfiguration( "pake/options-$projname.yaml", $projname, $projversion );
+            self::loadConfiguration( $cfgfile, $projname, $projversion );
         }
         return self::$options[$projname];
     }
@@ -1702,38 +1715,58 @@ class eZPCPBuilder
 
     /**
     * Creates an archive out of a directory.
-    * Requires the Zeta Components
+    *
+    * Uses command-lne tar as Zeta Cmponents do no compress well, and pake
+    * relies on phar which is buggy/unstable on old php versions
+    *
+    * @param boolean $no_top_dir when set, $sourcedir directory is not packaged as top-level dir in archive
+    * @todo for tar formats, fix the extra "." dir packaged
     */
     static function archiveDir( $sourcedir, $archivefile, $no_top_dir=false )
     {
 
-        // use command-lne tar as ezcomponents do no compress well, and pake
-        // relies on phar
+        //
+
+        // please tar cmd on win - OH MY!
+
+        $archivefile = str_replace( '\\', '/', $archivefile );
+        $sourcedir = str_replace( '\\', '/', realpath( $sourcedir ) );
 
         if( $no_top_dir )
         {
             $srcdir = '.';
-            $workdr = $sourcedir;
+            $workdir = $sourcedir;
         }
         else
         {
             $srcdir = basename( $sourcedir );
-            $workdr = dirname( $sourcedir );
+            $workdir = dirname( $sourcedir );
         }
+        $archivedir = dirname( $archivefile );
+        $extra = '';
 
         $tar = escapeshellarg( pake_which( 'tar' ) );
 
-        if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -7 ) == '.tgz' )
+        if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -4 ) == '.tgz' )
         {
-            $cmd = "$tar cvf -z";
+            $cmd = "$tar -z -cvf";
+            $extra = "-C " . escapeshellarg( $workdir );
+            $workdir = $archivedir;
+            $archivefile = basename( $archivefile );
         }
-        else if ( substr( $archivefile, -7 ) == '.tar.bz2' )
+        else if ( substr( $archivefile, -8 ) == '.tar.bz2' )
         {
-            $cmd = "$tar cvf -j";
+            $cmd = "$tar -j -cvf";
+            $extra = "-C " . escapeshellarg( $workdir );
+            $workdir = $archivedir;
+            $archivefile = basename( $archivefile );
         }
         else if ( substr( $archivefile, -4 ) == '.tar' )
         {
-            $cmd = "$tar cvf";
+            $cmd = "$tar -cvf";
+            $extra = "-C " . escapeshellarg( $workdir );
+            $workdir = $archivedir;
+            $archivefile = basename( $archivefile );
         }
         else if ( substr( $archivefile, -4 ) == '.zip' )
         {
@@ -1742,10 +1775,10 @@ class eZPCPBuilder
         }
         else
         {
-            throw new pakeException( "Can not determine archive tpe from flename: $archivefile" );
+            throw new pakeException( "Can not determine archive type from filename: $archivefile" );
         }
 
-        pake_exec( self::getCdCmd( $workdir ) . " && $cmd $archivefile $srcdir" );
+        pake_sh( self::getCdCmd( $workdir ) . " && $cmd $archivefile $extra $srcdir" );
 
         /*
 
@@ -2285,7 +2318,7 @@ pake_task( 'dist-init' );
 
 pake_task( 'dist-wpi' );
 
-pake_task( 'dist', 'dist-init', 'dist-wpi', 'generate-apidocs' );
+pake_task( 'dist', 'dist-init', 'dist-wpi', 'generate-apidocs-LS', 'generate-apidocs-NS' );
 
 pake_task( 'release', 'generate-html-changelog', 'generate-html-credits', 'update-share', 'update-version-history', 'upload-apidocs' );
 

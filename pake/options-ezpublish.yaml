@@ -56,7 +56,7 @@ create:
     mswpipackage: yes
 
     doxygen_doc: yes
-    docblox_doc: yes
+    docblox_doc: no
     sami_doc: no
     # deprecated: docblox is now phpdoc 2.0
     phpdoc_doc: no
@@ -73,10 +73,10 @@ docs:
     # allow doc generating tools to build fully highlighted version of full source code
     include_sources: no
 
-    # tarballs to create
+    # tarballs to create. Do like github by default: zip + tar.gz
     create:
-        zip: no
-        tgz: no
+        zip: yes
+        tgz: yes
         bz2: no
 
     # dirs not to scan for sources, separated by spaces
