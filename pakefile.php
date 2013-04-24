@@ -1053,7 +1053,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
 
         // zip the docs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen-' . $stack;
         // get absolute path to dist dir
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
@@ -1093,7 +1093,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
         }
         // zip the docs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox-' . $stack;
         $target = realpath( $opts['dist']['dir']) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
@@ -1146,7 +1146,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
 
         // zip the docs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-sami';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-sami-' . $stack;
         // get absolute path to dist dir
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
@@ -1195,7 +1195,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             throw new pakeException( "Phpdoc did not generate index.html file in $docsdir/phpdoc/html" );
         }
         // zip the docs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc-' . $stack;
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
