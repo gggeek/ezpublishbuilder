@@ -1128,7 +1128,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             'SOURCE' => str_replace( "'", "\'", $sourcedir ),
             'TITLE' => eZPCPBuilder::getLongProjName() . $namesuffix,
             'EXCLUDE' => $excludes,
-            'OUTPUT' => $docsdir . '/sami/html'
+            'OUTPUT' => $docsdir . '/sami/html',
+            'CACHEDIR' => $opts['build']['dir'] . '/sami_cache';
             ) );
 
         pake_mkdirs( $docsdir . '/sami' );

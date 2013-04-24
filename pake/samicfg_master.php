@@ -13,7 +13,7 @@ $iterator = Finder::create()
 return new Sami( $iterator, array(
     'title'               => '//TITLE//',
     'build_dir'           => '//OUTPUT//',
+    'cache_dir'           => '//CACHEDIR//',
     //'theme'               => 'enhanced',
-    //'cache_dir'           => __DIR__.'/../cache/zf2',
     //'include_parent_data' => false,
 ));
