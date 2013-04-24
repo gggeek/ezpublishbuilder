@@ -117,6 +117,9 @@ function run_init( $task=null, $args=array(), $cliopts=array() )
             ///       update it
             $r = pakeGit::clone_repository( $opts['git'][$repo]['url'], eZPCPBuilder::getSourceDir( $opts, $repo ) );
 
+            /// @todo set up username and password in /.git/config
+            ///       from either config file or interactive mode, to later allow tagging
+
             if ( @$opts['git'][$repo]['branch'] != '' )
             {
                 pake_echo( "Using GIT branch {$opts['git'][$repo]['branch']}" );
@@ -294,7 +297,6 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
     {
 
         /// @todo handle reverts ? Or process manually ?
-        // $ezpublish5Header = "eZ Publish 5\n------------\n";
         $ezpublishHeader[$repo] = eZPCPBuilder::getEzPublishHeader( $repo );
         $ezpublishHeader[$repo] .= "\n" . str_pad( '', strlen( $ezpublish5Header ), '-' ) . "\n";
     }
@@ -838,7 +840,7 @@ function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
 
 /**
  * Executes the build project on Jenkins (ezp5)
- * @todo code is duplicate of run_run_jenkins_build, reunite
+ * @todo code is duplicate of run_run_jenkins_build4, reunite
  */
 function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
 {
@@ -942,7 +944,6 @@ function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
  *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
  *
  * @todo warn user and abort if target directories for doc are not empty
- * @todo add support for setting path to tools in some config setting
  */
 function run_generate_apidocs_LS( $task=null, $args=array(), $cliopts=array() )
 {
@@ -1019,11 +1020,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
 
     if ( $opts['create']['doxygen_doc'] )
     {
-        /// @todo allow path to doxygen to be gotten from config settings
         $doxygen = @$cliopts['doxygen'];
         if ( $doxygen == '' )
         {
-            $doxygen = 'doxygen';
+            $doxygen = $opts['tools']['doxygen'];
         }
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
         $excludes = '';
@@ -1075,10 +1075,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $docblox = @$cliopts['docblox'];
         if ( $docblox == '' )
         {
-            $docblox = 'docblox.php';
+            $docblox = $opts['tools']['docblox'];
         }
         pake_mkdirs( $docsdir . '/docblox/html' );
-        $out = pake_sh( 'php ' . escapeshellarg( $docblox ) .
+        $out = pake_sh( 'php -d memory_limit=2000M ' . escapeshellarg( $docblox ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
@@ -1093,7 +1093,6 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
         }
         // zip the docs
-        /// @todo create .tgz, .bz2 tarballs using tar instead of ezc
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-docblox';
         $target = realpath( $opts['dist']['dir']) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
@@ -1115,7 +1114,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $sami = @$cliopts['sami'];
         if ( $sami == '' )
         {
-            $sami = 'sami.php';
+            $sami = $opts['tools']['sami'];
         }
         $samifile = $opts['build']['dir'] . '/samicfg.php';
         $excludes = array();
@@ -1168,7 +1167,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $phpdoc = @$cliopts['phpdoc'];
         if ( $phpdoc == '' )
         {
-            $phpdoc = 'phpdoc';
+            $phpdoc = $opts['tools']['phpdoc'];
         }
         pake_mkdirs( $docsdir . '/phpdoc/html' );
         // we try to avoid deprecation errors from phpdoc
@@ -1195,7 +1194,6 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             throw new pakeException( "Phpdoc did not generate index.html file in $docsdir/phpdoc/html" );
         }
         // zip the docs
-        /// @todo create .tgz, .bz2 tarballs
         $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-phpdoc';
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
