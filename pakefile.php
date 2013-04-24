@@ -1038,7 +1038,9 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
            "\nOUTPUT_DIRECTORY = " . $docsdir . '/doxygen' .
            "\nINPUT = " . $sourcedir .
            "\nEXCLUDE = " . $excludes .
-           "\nSTRIP_FROM_PATH = " . $sourcedir, FILE_APPEND );
+           "\nSTRIP_FROM_PATH = " . $sourcedir .
+           "\nINCLUDE_COURCES = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
+
         pake_mkdirs( $docsdir . '/doxygen' );
         $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) .
             ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
@@ -1080,6 +1082,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
+            ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
             ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
         /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
 
@@ -1109,7 +1112,55 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
 
     if ( $opts['create']['sami_doc'] )
     {
-        throw new pakeException( "Sami not yet implemented" );
+        $sami = @$cliopts['sami'];
+        if ( $sami == '' )
+        {
+            $sami = 'sami.php';
+        }
+        $samifile = $opts['build']['dir'] . '/samicfg.php';
+        $excludes = array();
+        foreach( $excludedirs as $excluded )
+        {
+            $excludes[] = str_replace( "'", "\'", $excluded );
+        }
+        $excludes = implode( "' )\n    ->exclude( '", $excludes );
+        pake_copy( 'pake/samicfg_master.php', $samifile, array( 'override' => true ) );
+        pake_replace_tokens( 'samicfg.php', $opts['build']['dir'], '//', '//', array(
+            'SOURCE' => str_replace( "'", "\'", $sourcedir ),
+            'TITLE' => eZPCPBuilder::getLongProjName() . $namesuffix,
+            'EXCLUDE' => $excludes,
+            'OUTPUT' => $docsdir . '/sami/html'
+            ) );
+
+        pake_mkdirs( $docsdir . '/sami' );
+        $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
+            ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
+        $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' render ' . escapeshellarg( $samifile ) .
+            ' >> ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
+
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/sami/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Sami did not generate index.html file in $docsdir/sami/html" );
+        }
+
+        // zip the docs
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen';
+        // get absolute path to dist dir
+        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.tar.bz2', true );
+        }
     }
 
     if ( $opts['create']['phpdoc_doc'] )
@@ -1129,9 +1180,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         // phpdoc uses A LOT of memory as well
         $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=2000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
-            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp -s' .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
             ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
+            ( $opts['docs']['include_sources'] ? ' -s' : '' ) .
             ' > ' . escapeshellarg( $docsdir . '/phpdoc/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
         ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
@@ -1233,8 +1285,6 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     //}
 
     // and unzip eZ into it - in a folder with a specific name
-    //$zip = ezcArchive::open( $filename, ezcArchive::BZIP2 );
-    //$zip->extract( $rootpath );
     pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );

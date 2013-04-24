@@ -56,8 +56,8 @@ create:
     mswpipackage: yes
 
     doxygen_doc: yes
-    docblox_doc: no
-    sami_doc: no
+    docblox_doc: yes
+    sami_doc: yes
     # deprecated: docblox is now phpdoc 2.0
     phpdoc_doc: no
 
