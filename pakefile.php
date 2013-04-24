@@ -1145,7 +1145,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
 
         // zip the docs
-        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-doxygen';
+        $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-apidocs-sami';
         // get absolute path to dist dir
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
