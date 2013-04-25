@@ -1078,7 +1078,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             $docblox = $opts['tools']['docblox'];
         }
         pake_mkdirs( $docsdir . '/docblox/html' );
-        $out = pake_sh( 'php -d memory_limit=2000M ' . escapeshellarg( $docblox ) .
+        $out = pake_sh( 'php -d memory_limit=3000M ' . escapeshellarg( $docblox ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
@@ -1097,15 +1097,15 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $target = realpath( $opts['dist']['dir']) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.bz2', true );
         }
     }
 
@@ -1131,6 +1131,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             'OUTPUT' => $docsdir . '/sami/html',
             'CACHEDIR' => $opts['build']['dir'] . '/sami_cache'
             ) );
+
+        /// @todo clear sami cache, as sometimes it prevents docs from generating correctly
 
         pake_mkdirs( $docsdir . '/sami' );
         $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
@@ -1178,7 +1180,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             $errcode =  6143;
         }
         // phpdoc uses A LOT of memory as well
-        $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=2000M ". escapeshellarg( $phpdoc ) .
+        $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=3000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName() . $namesuffix ) .
@@ -1199,15 +1201,15 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.tar.bz2', true );
         }
     }
 }
@@ -1280,7 +1282,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
 
     // and unzip eZ into it - in a folder with a specific name
-    $tar = escapeshellcmd( pake_which( 'tar' ) );
+    $tar = escapeshellarg( pake_which( 'tar' ) );
     pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && $tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
@@ -1624,7 +1626,7 @@ class eZPCPBuilder
     static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='', $projversion='' )
     {
         /// @todo review the list of mandatory options
-        $mandatory_opts = array( 'ezpublish' => array( 'name' ), 'version' => array( 'major', 'minor', 'release' ) );
+        $mandatory_opts = array( /*'ezpublish' => array( 'name' ),*/ 'version' => array( 'major', 'minor', 'release' ) );
         $default_opts = array(
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
@@ -1787,7 +1789,7 @@ class eZPCPBuilder
         $archivedir = dirname( $archivefile );
         $extra = '';
 
-        $tar = escapeshellcmd( pake_which( 'tar' ) );
+        $tar = escapeshellarg( pake_which( 'tar' ) );
 
         if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -4 ) == '.tgz' )
         {
