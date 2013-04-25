@@ -1280,7 +1280,8 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
 
     // and unzip eZ into it - in a folder with a specific name
-    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
+    $tar = escapeshellcmd( pake_which( 'tar' ) );
+    pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && $tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
     $currdir = $currdir[0];
@@ -1786,7 +1787,7 @@ class eZPCPBuilder
         $archivedir = dirname( $archivefile );
         $extra = '';
 
-        $tar = escapeshellarg( pake_which( 'tar' ) );
+        $tar = escapeshellcmd( pake_which( 'tar' ) );
 
         if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -4 ) == '.tgz' )
         {
