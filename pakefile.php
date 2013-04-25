@@ -1278,10 +1278,6 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_mkdirs( $rootpath );
     $filename = $rootpath . '/' . $artifact['fileName'];
     pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
-    //if ( !class_exists( 'ezcArchive' ) )
-    //{
-    //    throw new pakeException( "Missing Zeta Components: cannot unzip downloaded file. Use the environment var PHP_CLASSPATH" );
-    //}
 
     // and unzip eZ into it - in a folder with a specific name
     pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
@@ -1301,10 +1297,6 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
     $opts = eZPCPBuilder::getOpts( $args, $cliopts );
     if ( $opts['create']['mswpipackage'] )
     {
-        if ( !class_exists( 'ezcArchive' ) )
-        {
-            throw new pakeException( "Missing Zeta Components: cannot generate tar file. Use the environment var PHP_CLASSPATH" );
-        }
         pake_mkdirs( $opts['dist']['dir'] );
         $toppath = $opts['build']['dir'] . '/release';
         $rootpath = $toppath . '/' . eZPCPBuilder::getProjName();
@@ -1339,7 +1331,7 @@ function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
             /// @todo if name is empty do not add an extra hyphen
             $filename = 'ezpublish-' . $opts[eZPCPBuilder::getProjName()]['name'] . '-' . $opts['version']['alias'] . '-wpi.zip';
             $target = $opts['dist']['dir'] . '/' . $filename;
-            eZPCPBuilder::archiveDir( $toppath, $target, ezcArchive::ZIP, true );
+            eZPCPBuilder::archiveDir( $toppath, $target, true );
 
             // update feed file
             $feedfile = 'ezpcpmswpifeed.xml';
