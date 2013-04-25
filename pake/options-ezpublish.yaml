@@ -7,13 +7,15 @@
 ### git.
 
 ezpublish:
-    # used in name of zips/tarballs
-    name: community_project
+    # Used in name of zips/tarballs, as well as in doc titles (appended to "ezpublish "eZ Publish" respectively)
+    # Can be f.e. 'Community Project' or just empty for EE version
+    ####name: Community Project
+    name:
 
 version:
     # the version number set here can be overridden via command line arguments
-    major: 2013
-    minor: 4
+    major: 4
+    minor: 7
     release: 0
 
     previous:
@@ -85,8 +87,11 @@ docs:
         new_stack: ezpublish_legacy ezpublish/cache vendor/composer vendor/doctrine vendor/egulias vendor/kriswallsmith vendor/monolog vendor/psr vendor/qafoo vendor/sensio vendor/swiftmailer vendor/symfony vendor/symfony-cmf vendor/tedivm vendor/twig vendor/zetacomponents
 
     name_suffix:
-        legacy_stack: (Legacy Stack)
+        ###legacy_stack: (Legacy Stack)
+        legacy_stack:
         new_stack:
+        # used for building docs from a 4.x codebase. Empty is a good idea
+        4x_stack:
 
 tools:
     # full pathname to doc generation tools (can be overridden by cli options)
