@@ -993,7 +993,6 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
     $sourcedir = @$cliopts['sourcedir'];
     $docsdir = @$cliopts['docsdir'];
 
-
     switch( $stack )
     {
         case 'LS':
@@ -1001,6 +1000,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             if ( $sourcedir == '' )
             {
                 $sourcedir = $opts['build']['dir'] . '/release/' . eZPCPBuilder::getProjName() . '/ezpublish_legacy';
+            }
+            else
+            {
+                $sourcedir .= '/ezpublish_legacy';
             }
             if ( $docsdir == '' )
             {
@@ -1657,14 +1660,14 @@ class eZPCPBuilder
             $out .= '-' . str_replace( ' ', '_', self::$options[self::$projname][self::$projname]['name'] );
         }
         $out .= '-' . self::$options[self::$projname]['version']['alias'];
-        return $out;
+        return strtolower( $out );
     }
 
     /**
     * Loads build options from config file(s)
-    * nb: when called with a custom project name, sets it as current for subsequent calls too
     * @param array $opts the 1st option is the version to be built. If given, it overrides the one in the config file
-    * @param array $cliopts optional parameters. If "config-file" is set, that will be used instead of options-ezpublish.yaml
+    * @param array $cliopts optional parameters. If "config-file" is set, that will be used instead of options-ezpublish.yaml.
+    *              Also all options starting with "option." can be set to override config-faile values
     * @return array all the options
     *
     * @todo remove support for a separate project name, as it is leftover from ezextensionbuilder
@@ -1681,15 +1684,23 @@ class eZPCPBuilder
         {
             $cfgfile  ="pake/options-$projname.yaml";
         }
+        $overrideopts = array();
+        foreach( $cliopts as $opt )
+        {
+            if ( substr( $opt, 0, 7 ) == 'option.')
+            {
+                $overrideopts[] = explode( '.', substr( $opt, 7 ) );
+            }
+        }
         if ( !isset( self::$options[$projname] ) || !is_array( self::$options[$projname] ) )
         {
-            self::loadConfiguration( $cfgfile, $projname, $projversion );
+            self::loadConfiguration( $cfgfile, $projname, $projversion, $cliopts, $overrideopts );
         }
         return self::$options[$projname];
     }
 
     /// @bug this only works as long as all defaults are 2 levels deep
-    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='', $projversion='' )
+    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='', $projversion='', $overrideoptions=array() )
     {
         /// @todo review the list of mandatory options
         $mandatory_opts = array( /*'ezpublish' => array( 'name' ),*/ 'version' => array( 'major', 'minor', 'release' ) );
@@ -1697,14 +1708,17 @@ class eZPCPBuilder
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
             'docs' => array( 'dir' => 'dist/docs' ),
-            'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, /*'ezpackage' => false, 'pearpackage' => false*/ ),
+            'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, 'sami_doc' => false /*'ezpackage' => false, 'pearpackage' => false*/ ),
             //'version' => array( 'license' => 'GNU General Public License v2.0' ),
             //'releasenr' => array( 'separator' => '.' ),
             //'files' => array( 'to_parse' => array(), 'to_exclude' => array(), 'gnu_dir' => '', 'sql_files' => array( 'db_schema' => 'schema.sql', 'db_data' => 'cleandata.sql' ) ),
             /*'dependencies' => array( 'extensions' => array() )*/ );
+
+        // load main config file
         /// @todo !important: test if !file_exists give a nicer warning than what we get from loadFile()
         $options = pakeYaml::loadFile( $infile );
 
+        // merge data from local config file
         $useroptsfile = str_replace( '.yaml', '-user.yaml', $infile );
         if ( file_exists( $useroptsfile ) )
         {
@@ -1713,6 +1727,13 @@ class eZPCPBuilder
             self::recursivemerge( $options, $useroptions );
         }
 
+        // merge options from cli
+        if ( count( $overrideoptions ) )
+        {
+            self::recursivemerge( $options, $overrideoptions );
+        }
+
+        // check if anything mandatory is missing
         foreach( $mandatory_opts as $key => $opts )
         {
             foreach( $opts as $opt )
@@ -1723,6 +1744,8 @@ class eZPCPBuilder
                 }
             }
         }
+
+        // one more hardcoded override
         if ( $projversion != '' )
         {
             $projversion = explode( '.', $projversion );
@@ -1734,6 +1757,8 @@ class eZPCPBuilder
         {
             $options['version']['alias'] = $options['version']['major'] . '.' . $options['version']['minor'];
         }
+
+        // merge default values
         foreach( $default_opts as $key => $opts )
         {
             if ( isset( $options[$key] ) && is_array( $options[$key] ) )
@@ -1746,6 +1771,7 @@ class eZPCPBuilder
                 $options[$key] = $opts;
             }
         }
+
         self::$options[$projname] = $options;
         return true;
     }

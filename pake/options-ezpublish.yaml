@@ -9,13 +9,12 @@
 ezpublish:
     # Used in name of zips/tarballs, as well as in doc titles (appended to "ezpublish "eZ Publish" respectively)
     # Can be f.e. 'Community Project' or just empty for EE version
-    ####name: Community Project
-    name:
+    name: Community Project
 
 version:
     # the version number set here can be overridden via command line arguments
-    major: 4
-    minor: 7
+    major: 2013
+    minor: 4
     release: 0
 
     previous:
@@ -58,9 +57,10 @@ create:
     mswpipackage: yes
 
     doxygen_doc: yes
-    docblox_doc: yes
     sami_doc: yes
-    # deprecated: docblox is now phpdoc 2.0
+    # docblox has a hard time coping with the New Stack
+    docblox_doc: no
+    # deprecated: docblox is the new phpdoc 2.0
     phpdoc_doc: no
 
     # unused yet...
@@ -84,11 +84,10 @@ docs:
     # dirs not to scan for sources, separated by spaces
     exclude_dirs:
         legacy_stack: benchmark extension lib/ezc settings var
-        new_stack: ezpublish_legacy ezpublish/cache vendor/composer vendor/doctrine vendor/egulias vendor/kriswallsmith vendor/monolog vendor/psr vendor/qafoo vendor/sensio vendor/swiftmailer vendor/symfony vendor/symfony-cmf vendor/tedivm vendor/twig vendor/zetacomponents
+        new_stack: ezpublish_legacy ezpublish/cache vendor/composer vendor/doctrine vendor/egulias vendor/kriswallsmith vendor/monolog vendor/psr vendor/qafoo vendor/sensio vendor/swiftmailer vendor/symfony vendor/symfony-cmf vendor/tedivm vendor/twig vendor/zetacomponents vendor/ezsystems/ezpublish/vendor Tests
 
     name_suffix:
-        ###legacy_stack: (Legacy Stack)
-        legacy_stack:
+        legacy_stack: (Legacy Stack)
         new_stack:
         # used for building docs from a 4.x codebase. Empty is a good idea
         4x_stack:
