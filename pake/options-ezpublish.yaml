@@ -63,13 +63,6 @@ create:
     # deprecated: docblox is the new phpdoc 2.0
     phpdoc_doc: no
 
-    # unused yet...
-    zip: no
-    tgz: no
-    bz2: no
-    ezpackage: no
-    pearpackage: no
-
 # Options for generation of documentation
 docs:
     # allow doc generating tools to build fully highlighted version of full source code
@@ -143,14 +136,3 @@ jenkins:
     # To get the api token, log in to jenkins, then go to your user profile page
     user:
     apitoken:
-
-# unused yet...
-#files:
-#    to_parse: []
-#    to_exclude: []
-
-# other
-
-# deprecated
-#releasenr:
-#    separator: .
