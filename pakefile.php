@@ -983,6 +983,7 @@ function run_generate_apidocs_4X( $task=null, $args=array(), $cliopts=array() )
 }
 
 /**
+* @todo allow via CLI to specify dir for tarballs
 * @todo simplify management of title for docs: just get it whole from configs...
 */
 function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
@@ -1053,6 +1054,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
 
     if ( $opts['create']['doxygen_doc'] )
     {
+        pake_echo( "Generating docs using Doxygen" );
+
         $doxygen = @$cliopts['doxygen'];
         if ( $doxygen == '' )
         {
@@ -1075,6 +1078,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
            "\nINCLUDE_COURCES = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
 
         pake_mkdirs( $docsdir . '/doxygen' );
+        pake_remove_dir( $docsdir . '/doxygen/html' );
         $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) .
             ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
 
@@ -1086,6 +1090,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
 
         // zip the docs
+        pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-doxygen-' . $stack;
         // get absolute path to dist dir
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
@@ -1103,47 +1108,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
     }
 
-    if ( $opts['create']['docblox_doc'] )
-    {
-        $docblox = @$cliopts['docblox'];
-        if ( $docblox == '' )
-        {
-            $docblox = $opts['tools']['docblox'];
-        }
-        pake_mkdirs( $docsdir . '/docblox/html' );
-        $out = pake_sh( 'php -d memory_limit=3000M ' . escapeshellarg( $docblox ) .
-            ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
-            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) ) .
-            ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
-            ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
-            ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
-        /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
-
-        // test that there are any doc files created
-        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/docblox/html' );
-        if ( !count( $files ) )
-        {
-            throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
-        }
-        // zip the docs
-        $filename = eZPCPBuilder::getProjFileName() . '-apidocs-docblox-' . $stack;
-        $target = realpath( $opts['dist']['dir']) . '/' . $filename;
-        if ( $opts['docs']['create']['zip'] )
-        {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.zip', true );
-        }
-        if ( $opts['docs']['create']['tgz'] )
-        {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.gz', true );
-        }
-        if ( $opts['docs']['create']['bz2'] )
-        {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.bz2', true );
-        }
-    }
-
     if ( $opts['create']['sami_doc'] )
     {
+        pake_echo( "Generating docs using Sami" );
+
         $sami = @$cliopts['sami'];
         if ( $sami == '' )
         {
@@ -1159,15 +1127,17 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         pake_copy( 'pake/samicfg_master.php', $samifile, array( 'override' => true ) );
         pake_replace_tokens( 'samicfg.php', $opts['build']['dir'], '//', '//', array(
             'SOURCE' => str_replace( "'", "\'", $sourcedir ),
-            'TITLE' => eZPCPBuilder::getLongProjName( true, $namesuffix ),
+            'TITLE' => eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'],
             'EXCLUDE' => $excludes,
             'OUTPUT' => $docsdir . '/sami/html',
             'CACHEDIR' => $opts['build']['dir'] . '/sami_cache'
             ) );
 
-        /// @todo clear sami cache, as sometimes it prevents docs from generating correctly
+        //clear sami cache, as sometimes it prevents docs from generating correctly
+        pake_remove_dir( $opts['build']['dir'] . '/sami_cache' );
 
         pake_mkdirs( $docsdir . '/sami' );
+        pake_remove_dir( $docsdir . '/sami/html' );
         $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
             ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
         $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' render ' . escapeshellarg( $samifile ) .
@@ -1181,6 +1151,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
 
         // zip the docs
+        pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-sami-' . $stack;
         // get absolute path to dist dir
         $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
@@ -1198,8 +1169,53 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
     }
 
+    if ( $opts['create']['docblox_doc'] )
+    {
+        pake_echo( "Generating docs using Docblox" );
+
+        $docblox = @$cliopts['docblox'];
+        if ( $docblox == '' )
+        {
+            $docblox = $opts['tools']['docblox'];
+        }
+        pake_mkdirs( $docsdir . '/docblox/html' );
+        pake_remove_dir( $docsdir . '/docblox/html' );
+        $out = pake_sh( 'php -d memory_limit=3000M ' . escapeshellarg( $docblox ) .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
+            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ) .
+            ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
+            ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
+            ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
+        /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
+
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/docblox/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
+        }
+        // zip the docs
+        pake_echo( "Creating tarballs of docs" );
+        $filename = eZPCPBuilder::getProjFileName() . '-apidocs-docblox-' . $stack;
+        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.bz2', true );
+        }
+    }
+
     if ( $opts['create']['phpdoc_doc'] )
     {
+        pake_echo( "Generating docs using PhpDoc" );
+
         $phpdoc = @$cliopts['phpdoc'];
         if ( $phpdoc == '' )
         {
@@ -1216,7 +1232,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=3000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
-            ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) ).
+            ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
             ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ( $opts['docs']['include_sources'] ? ' -s' : '' ) .
             ' > ' . escapeshellarg( $docsdir . '/phpdoc/generate.log' ) );
@@ -1230,8 +1246,9 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             throw new pakeException( "Phpdoc did not generate index.html file in $docsdir/phpdoc/html" );
         }
         // zip the docs
+        pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-phpdoc-' . $stack;
-        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        $target = realpath( $docsdir ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
             eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.zip', true );
@@ -1621,20 +1638,25 @@ class eZPCPBuilder
         return self::$projname;
     }
 
-    // Taken from config file.
+    /**
+     * Long name starts with an optional "eZ Publish", then name from options, then suffix
+     */
     static function getLongProjName( $withPrefix = false, $suffix='' )
     {
-        return ( $withPrefix ? 'eZ Publish ': '' ) . ucfirst( str_replace( '_', ' ',  self::$options[self::$projname]['name'] . $suffix ) );
+        return ( $withPrefix ? 'eZ Publish ': '' ) . ucfirst( str_replace( '_', ' ',  self::$options[self::$projname][self::$projname]['name'] . $suffix ) );
     }
 
+    /**
+    * File name starts with "ezpublish", then name from options, then version nr
+    */
     static function getProjFileName()
     {
         $out = self::$projname;
-        if ( self::$options[self::$projname]['name'] != '' )
+        if ( self::$options[self::$projname][self::$projname]['name'] != '' )
         {
-            $out .= '-' . str_replace( ' ', '_', self::$options[self::$projname]['name'] );
+            $out .= '-' . str_replace( ' ', '_', self::$options[self::$projname][self::$projname]['name'] );
         }
-        $out .= '-' . self::$options['version']['alias'];
+        $out .= '-' . self::$options[self::$projname]['version']['alias'];
         return $out;
     }
 
