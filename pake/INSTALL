@@ -2,8 +2,7 @@ Requirements
 ============
 
 - the php cli
-- the Zeta Components php library (only for generating tarballs and html docs from rst)
-- command line tools: git
+- command line tools: git, tar, zip, patch
 
 
 How to install and use eZ Publish Builder
@@ -29,60 +28,91 @@ first time that you run it: ::
 
 This will create a directory ./pake/ and download into it all needed stuff from http://svn.projects.ez.no/ezpublishbuilder.
 
+3. Edit the configuration file (once)
+------------------------------------------------
 
-3. Clone the CI git repository to your computer (once)
+The starting configuration file is provided by the extension: ./pake/options-ezpublish.yaml
+
+The system will also load a 2nd config. file: options-ezpublish-user.yaml.
+This file is not kept in github and is a good place to store data which is either
+sensitive or local to your environment, such as passwords or paths to cli tools.
+It has the same format as options-ezpublish.yaml
+
+Parameters that you will have to put in it:
+- jenkins username
+- jenkins api-token (visible in your user profile page)
+- toolx/xxx
+
+4. Clone the CI git repository to your computer (once)
 ------------------------------------------------------
 
 This task is partially automated via the script:
 
 If you have already installed a clone of the CI git repository, just edit the
-configuration file ./pake/options-ezpublish.yaml and set the path to it.
+local configuration file ./pake/options-ezpublish-user.yaml and set the path to it.
 
 If you have not,
-a. edit the configuration file ./pake/options-ezpublish.yaml and set the path
+a. edit the configuration file ./pake/options-ezpublish-user.yaml and set the path
    to where it has to be downloaded
 b. run php pakefile.php init-ci-repo
 c. alter the git configuration file in the directory where the CI repo has been
    cloned, adding a username and email
 d. test that you have permissions to execute pushes on the upstream repository
 
+5. Clone the eZ Publish git repositories to your computer (once)
+----------------------------------------------------------------
 
-4. Edit the configuration file (for every build)
+This task is partially automated via the script:
+
+b. run php pakefile.php init
+c. alter the git configuration file in the directory where the repositories have been
+   cloned, in build/source/ezpublish, adding a username and email
+d. test that you have permissions to execute pushes on the upstream repositories
+
+6. Edit the configuration file (for every build)
 ------------------------------------------------
 
-A starting configuration file is provided by the extension: ./pake/options-ezpublish.yaml
-You should edit it to suit your needs.
-
 Parameters that you will have to change:
-- version numbers
-- ci-repo/local-path
-- version/previous/git-revision
+- version number
+- git revisions for previous version (if it has not been properly tagged in all git repositories)
 
-Note that for future builds, version number can be given on the command line, thus
+Note that for all builds, version number can be given on the command line, thus
 you will not need to edit options-ezpublish.yaml every time.
 
-The system will also load a 2nd config. file: options-ezpublish-user.yaml.
-This file is not kept in github and is a good place to store data which is sensitive
-or local to your environment, such as passwords or paths to cli tools.
-It has the same format as options-ezpublish.yaml
 
-Parameters that you will have to put in it:
-- jenkins username
-- jenkins api-token (visible in your user profile page)
-
-
-5. Launch the build (for every build)
--------------------------------------------
+7. Launch the build (for every build)
+-------------------------------------
 
 To get a list of all available tasks run::
 
     php pakefile.php --tasks
 
-[... to be documented more ...]
+To get a list of all available tasks, with dependencies, run::
 
-NB: The Zeta Components library must be available in your php include_path. If it
-is not, you can set the environment variable PHP_CLASSPATH to make it available
-to the script.
+    php pakefile.php --prereqs
+
+The build process consists more or less of the following steps:
+
+- INIT phase:
+  - initialize local copies of git repositories (run only once)
+
+- BUILD phase:
+  - update local copies of git repositories
+  - generate a changelog file from git commit messages
+  - allow user to edit by hand the changelog to make it perfect
+  - upload changelog file to the CI repository (it is used later by the jenkins builds),
+    together with some other updates to patch files (the CI repo is used by the Jenkins build)
+  - start the builds on jenkins
+
+- DIST phase
+  - download build artifact (the eZP tarball) locally, to allow testing
+  - generate documentation
+  - generate the WPI package for the MS WebMatrix (deprecated since move to eZ 5.x)
+
+- extra tasks, not yet part of standard process:
+  - tag the existing revisions on the upstream github revisions
+  - generate html version of changelog to be usd for updating share.ez.no
+  - update the version history file on pubsvn.ez.no
 
 
 More information
