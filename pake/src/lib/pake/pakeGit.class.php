@@ -186,10 +186,8 @@ class pakeGit
                 self::$needs_work_tree_workaround = true;
                 return $this->git_run($command);
             }
-            else
-            {
-                throw $e;
-            }
+
+            throw $e;
         }
     }
 

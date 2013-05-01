@@ -76,10 +76,33 @@ class pakeTask
     return $tasks;
   }
 
-  public static function get_abbreviated_tasknames()
-  {
-      return self::abbrev(array_keys(self::get_tasks()));
-  }
+    public static function get_abbreviated_tasknames()
+    {
+        return self::abbrev(array_keys(self::get_tasks()));
+    }
+
+    /**
+     * @static
+     * @param $abbreviation string
+     * @return string
+     * @throws pakeException
+     */
+    public static function taskname_from_abbreviation($abbreviation)
+    {
+        // generating abbreviations
+        $abbreviated_tasks = self::get_abbreviated_tasknames();
+
+        // does requested task correspond to full or abbreviated name?
+        if (!array_key_exists($abbreviation, $abbreviated_tasks)) {
+            throw new pakeException('Task "'.$abbreviation.'" is not defined.');
+        }
+
+        if (count($abbreviated_tasks[$abbreviation]) > 1) {
+            throw new pakeException('Task "'.$abbreviation.'" is ambiguous ('.implode(', ', $abbreviated_tasks[$abbreviation]).').');
+        }
+
+        return $abbreviated_tasks[$abbreviation][0];
+    }
 
   public function get_property($name, $section = null)
   {
@@ -264,17 +287,23 @@ class pakeTask
     return pakeTask::$TASKS[$task_name];
   }
 
-  public static function get($task_name)
-  {
-    $tasks = self::get_tasks();
-    $task_name = self::get_full_task_name($task_name);
-    if (!array_key_exists($task_name, $tasks))
+    /**
+     * @static
+     * @param $task_name string
+     * @return pakeTask
+     * @throws pakeException
+     */
+    public static function get($task_name)
     {
-      throw new pakeException('Task "'.$task_name.'" is not defined.');
-    }
+        $tasks = self::get_tasks();
+        $task_name = self::get_full_task_name($task_name);
 
-    return $tasks[$task_name];
-  }
+        if (!array_key_exists($task_name, $tasks)) {
+            throw new pakeException('Task "'.$task_name.'" is not defined.');
+        }
+
+        return $tasks[$task_name];
+    }
 
   public static function get_full_task_name($task_name)
   {
@@ -296,8 +325,7 @@ class pakeTask
    * abc::def => def
    *
    * @param string $task_name 
-   * @return void
-   * @author Jimi Dini
+   * @return string
    */
   public static function get_mini_task_name($task_name)
   {

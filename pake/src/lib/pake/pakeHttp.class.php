@@ -12,12 +12,12 @@ class pakeHttp
     /**
      * execute HTTP Request
      *
-     * @param string $method
-     * @param string $url
+     * @param string $method 
+     * @param string $url 
      * @param mixed $query_data string or array
      * @param mixed $body string or array
-     * @param array $headers
-     * @param array $options
+     * @param array $headers 
+     * @param array $options 
      * @return string
      */
     public static function request($method, $url, $query_data = null, $body = null, array $headers = array(), array $options = array())
@@ -114,12 +114,12 @@ class pakeHttp
      * execute HTTP Request and match response against PCRE regexp
      *
      * @param string $regexp PCRE regexp
-     * @param string $method
-     * @param string $url
+     * @param string $method 
+     * @param string $url 
      * @param mixed $query_data string or array
      * @param mixed $body string or array
-     * @param array $headers
-     * @param array $options
+     * @param array $headers 
+     * @param array $options 
      * @return void
      */
     public static function matchRequest($regexp, $method, $url, $query_data = null, $body = null, array $headers = array(), array $options = array())
