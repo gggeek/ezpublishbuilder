@@ -17,7 +17,8 @@ version:
     minor: 4
     release: 0
 
-    alias: Trunk
+    # defaults to $major.$minor
+    #alias:
 
     previous:
         # Previous version name - used eg. for changelog filename.
@@ -47,7 +48,7 @@ version:
 
 build:
     # Directory for the build.
-    # In it, the "esource/zpublish" subdir will be hosting git repo clones of the eZ sources
+    # In it, the "source/ezpublish" subdir will be hosting git repo clones of the eZ sources
     dir: build
 
 dist:
@@ -109,7 +110,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/legacy
-        local-path: source/trunk/legacy
+        #local-path:
 
     community:
         url: git@github.com:ezsystems/ezpublish-community.git
@@ -118,7 +119,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/community
-        local-path: source/trunk/community
+        #local-path:
 
     kernel:
         url: git@github.com:ezsystems/ezpublish-kernel.git
@@ -127,7 +128,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/kernel
-        local-path: source/trunk/kernel
+        #local-path:
 
     # "ci" git repo, used by the eZP "main" build process
     ci-repo:
