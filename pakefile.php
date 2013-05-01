@@ -1162,7 +1162,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             'TITLE' => eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'],
             'EXCLUDE' => $excludes,
             'OUTPUT' => $docsdir . '/sami/html',
-            'CACHEDIR' => $opts['build']['dir'] . '/sami_cache'
+            'CACHEDIR' => $opts['build']['dir'] . '/sami_cache',
+            'BASEDIR' => __DIR__
             ) );
 
         //clear sami cache, as sometimes it prevents docs from generating correctly
