@@ -17,6 +17,8 @@ version:
     minor: 4
     release: 0
 
+    alias: Trunk
+
     previous:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
@@ -107,7 +109,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/legacy
-        #local-path:
+        local-path: source/trunk/legacy
 
     community:
         url: git@github.com:ezsystems/ezpublish-community.git
@@ -116,7 +118,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/community
-        #local-path:
+        local-path: source/trunk/community
 
     kernel:
         url: git@github.com:ezsystems/ezpublish-kernel.git
@@ -125,7 +127,7 @@ git:
         #branch:
 
         # in case source is not in <build>/source/ezpublish/kernel
-        #local-path:
+        local-path: source/trunk/kernel
 
     # "ci" git repo, used by the eZP "main" build process
     ci-repo:
