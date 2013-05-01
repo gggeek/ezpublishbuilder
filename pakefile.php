@@ -213,10 +213,18 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
         // 1. check if build dir is correctly linked to source git repo
         /// @todo use pakeGit::remotes() instead of this code
         $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git remote -v" ) );
+        foreach( $remotesArray as $key => $val )
+        {
+            if ( $val == '' )
+            {
+                unset( $remotesArray[$key] );
+            }
+        }
         $originf = false;
         foreach( $remotesArray as $remote )
         {
-            if ( strpos( $remote, $opts['git'][$repo]['url'] . ' (fetch)' ) !== false )
+            if ( strpos( $remote, $opts['git'][$repo]['url'] . ' (fetch)' ) !== false || (
+                strpos( $remote, $opts['git'][$repo]['url'] ) !== false && count( $remotesArray ) == 1 ) )
             {
                 $originf = explode( ' ', $remote );
                 $originf = $originf[0];
@@ -526,6 +534,13 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
     // test that we're on the good git
     /// @todo use pakeGit::remotes() instead of this code
     $remotesArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( eZPCPBuilder::getCdCmd( $cipath ) . " && $git remote -v" ) );
+    foreach( $remotesArray as $key => $val )
+    {
+        if ( $val == '' )
+        {
+            unset( $remotesArray[$key] );
+        }
+    }
     $originp = false;
     $originf = false;
 
@@ -538,7 +553,8 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
             // dirty, dirty hack
             $GLOBALS['originp'] = $originp;
         }
-        if ( strpos( $remote, $opts['git']['ci-repo']['url'] . ' (fetch)' ) !== false )
+        if ( strpos( $remote, $opts['git']['ci-repo']['url'] . ' (fetch)' ) !== false || (
+            strpos( $remote, $opts['git']['ci-repo']['url'] ) !== false && count( $remotesArray ) == 1 ) )
         {
             $originf = preg_split( '/[ \t]/', $remote );
             $originf = $originf[0];
