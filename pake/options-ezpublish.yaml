@@ -76,7 +76,7 @@ docs:
 
     # dirs not to scan for sources, separated by spaces
     exclude_dirs:
-        legacy_stack: benchmark extension lib/ezc settings var
+        legacy_stack: benchmarks extension lib/ezc settings var tests
         new_stack: ezpublish_legacy ezpublish/cache vendor/composer vendor/doctrine vendor/egulias vendor/kriswallsmith vendor/monolog vendor/psr vendor/qafoo vendor/sensio vendor/swiftmailer vendor/symfony vendor/symfony-cmf vendor/tedivm vendor/twig vendor/zetacomponents vendor/ezsystems/ezpublish/vendor Tests
 
     name_suffix:
