@@ -1062,7 +1062,11 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $doxygen = @$cliopts['doxygen'];
         if ( $doxygen == '' )
         {
-            $doxygen = $opts['tools']['doxygen'];
+            $doxygen = eZPCPBuilder::getTool( 'doxyegn', $opts );
+        }
+        else
+        {
+            $doxygen = escapeshellarg( $doxygen );
         }
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
         $excludes = '';
@@ -1082,7 +1086,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
 
         pake_mkdirs( $docsdir . '/doxygen' );
         pake_remove_dir( $docsdir . '/doxygen/html' );
-        $out = pake_sh( escapeshellcmd( $doxygen ) . ' ' . escapeshellarg( $doxyfile ) .
+        $out = pake_sh( "$doxygen " . escapeshellarg( $doxyfile ) .
             ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
 
         // test that there are any doc files created
@@ -1118,7 +1122,11 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $sami = @$cliopts['sami'];
         if ( $sami == '' )
         {
-            $sami = $opts['tools']['sami'];
+            $sami = eZPCPBuilder::getTool( 'sami', $opts );
+        }
+        else
+        {
+            $sami = escapeshellarg( $sami );
         }
         $samifile = $opts['build']['dir'] . '/samicfg.php';
         $excludes = array();
@@ -1142,7 +1150,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         pake_mkdirs( $docsdir . '/sami' );
         pake_remove_dir( $docsdir . '/sami/html' );
         $php = eZPCPBuilder::getTool( 'php', $opts );
-        $out = pake_sh( "$php " . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
+        $out = pake_sh( "$php $sami parse --force " . escapeshellarg( $samifile ) .
             ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
         $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' render ' . escapeshellarg( $samifile ) .
             ' >> ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
@@ -1180,12 +1188,16 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $docblox = @$cliopts['docblox'];
         if ( $docblox == '' )
         {
-            $docblox = $opts['tools']['docblox'];
+            $docblox = eZPCPBuilder::getTool( 'docblox', $opts );
+        }
+        else
+        {
+            $docblox = escapeshellarg( $docblox );
         }
         pake_mkdirs( $docsdir . '/docblox/html' );
         pake_remove_dir( $docsdir . '/docblox/html' );
         $php = eZPCPBuilder::getTool( 'php', $opts );
-        $out = pake_sh( "$php -d memory_limit=3000M " . escapeshellarg( $docblox ) .
+        $out = pake_sh( "$php -d memory_limit=3000M $docblox" .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
@@ -1224,7 +1236,11 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $phpdoc = @$cliopts['phpdoc'];
         if ( $phpdoc == '' )
         {
-            $phpdoc = $opts['tools']['phpdoc'];
+            $phpdoc = eZPCPBuilder::getTool( 'phpdoc', $opts );
+        }
+        else
+        {
+            $phpdoc = escapeshellarg( $phpdoc );
         }
         pake_mkdirs( $docsdir . '/phpdoc/html' );
         // we try to avoid deprecation errors from phpdoc
@@ -1235,7 +1251,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
         // phpdoc uses A LOT of memory as well
         $php = eZPCPBuilder::getTool( 'php', $opts );
-        $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M ". escapeshellarg( $phpdoc ) .
+        $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M $phpdoc" .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
@@ -1863,9 +1879,6 @@ class eZPCPBuilder
     */
     static function archiveDir( $sourcedir, $archivefile, $no_top_dir=false )
     {
-
-        //
-
         // please tar cmd on win - OH MY!
 
         $archivefile = str_replace( '\\', '/', $archivefile );
@@ -1884,7 +1897,7 @@ class eZPCPBuilder
         $archivedir = dirname( $archivefile );
         $extra = '';
 
-        $tar = eZPCPBuilder::getTool( 'tar', $opts );
+        $tar = eZPCPBuilder::getTool( 'tar' );
 
         if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -4 ) == '.tgz' )
         {
@@ -1909,7 +1922,7 @@ class eZPCPBuilder
         }
         else if ( substr( $archivefile, -4 ) == '.zip' )
         {
-            $zip = self::getTool( 'zip', $opts );
+            $zip = self::getTool( 'zip' );
             $cmd = "$zip -9 -r";
         }
         else
@@ -2007,11 +2020,16 @@ class eZPCPBuilder
     }
 
 
-    public static function getTool( $tool, $opts )
+    public static function getTool( $tool, $opts=false )
     {
+        // dirty workaround
+        if ( $opts == false )
+        {
+            $opts = self::$options[self::$projname];
+        }
         if ( isset( $opts['tools'][$tool] ) )
         {
-            return escapeshellcmd( $opts['tools'][$tool] );
+            return escapeshellarg( $opts['tools'][$tool] );
         }
         else
         {

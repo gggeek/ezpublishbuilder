@@ -141,7 +141,7 @@ class pakeFinder
     /**
      * converts ant-pattern to PCRE regex
      *
-     * @param string $pattern 
+     * @param string $pattern
      * @return string
      */
     private function pattern_to_regex($pattern)
@@ -620,19 +620,9 @@ class pakeFinder
         $files = array();
 
         if (is_array($arg)) {
-            if (strlen($target_dir) > 0) {
-                foreach ($arg as $path) {
-                    $files[] = $target_dir.'/'.$path;
-                }
-            } else {
-                $files = $arg;
-            }
+            $files = $arg;
         } elseif (is_string($arg)) {
-            if (strlen($target_dir) > 0) {
-                $files[] = $target_dir.'/'.$arg;
-            } else {
-                $files[] = $arg;
-            }
+            $files[] = $arg;
         } elseif ($arg instanceof pakeFinder) {
             /** @var $arg pakeFinder */
             $files = $arg->in($target_dir);
