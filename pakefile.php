@@ -1037,6 +1037,11 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
                 $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName() . '/ezpublish';
             }
             $files = pakeFinder::type( 'file' )->name( 'autoload.php' )->maxdepth( 0 )->in( $sourcedir . '/ezpublish' );
+            // allow building from sources, not only from release
+            if ( !count( $files ) )
+            {
+                $files = pakeFinder::type( 'directory' )->name( 'eZ' )->maxdepth( 0 )->in( $sourcedir );
+            }
             $namesuffix = $opts['docs']['name_suffix']['new_stack'];
     }
 
@@ -1062,7 +1067,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $doxygen = @$cliopts['doxygen'];
         if ( $doxygen == '' )
         {
-            $doxygen = eZPCPBuilder::getTool( 'doxyegn', $opts );
+            $doxygen = eZPCPBuilder::getTool( 'doxygen', $opts );
         }
         else
         {
@@ -1152,7 +1157,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php $sami parse --force " . escapeshellarg( $samifile ) .
             ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
-        $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' render ' . escapeshellarg( $samifile ) .
+        $out = pake_sh( "$php $sami render " . escapeshellarg( $samifile ) .
             ' >> ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
 
         // test that there are any doc files created
