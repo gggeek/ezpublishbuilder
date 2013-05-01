@@ -202,7 +202,7 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
         return;
     }
 
-    $git = escapeshellarg( pake_which( 'git' ) );
+    $git = eZPCPBuilder::getTool( 'git', $opts );
 
     foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
@@ -521,7 +521,7 @@ function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() 
 
     $cipath = eZPCPBuilder::getSourceDir( $opts, 'ci-repo' );
 
-    $git = escapeshellarg( pake_which( 'git' ) );
+    $git = eZPCPBuilder::getTool( 'git', $opts );
 
     // test that we're on the good git
     /// @todo use pakeGit::remotes() instead of this code
@@ -580,7 +580,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // start work on the ci repo:
 
     $cipath = eZPCPBuilder::getSourceDir( $opts, 'ci-repo' );
-    $git = escapeshellarg( pake_which( 'git' ) );
+    $git = eZPCPBuilder::getTool( 'git', $opts );
 
     // 1. update ci repo - moved to a separate task
 
@@ -621,7 +621,7 @@ function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     // we need thus to regenerate them (more details: https://docs.google.com/a/ez.no/document/d/1h5n3aZdXbyo9_iJoDjoDs9a6GdFZ2G-db9ToK7J1Gck/edit?hl=en_GB)
 
     // 1st, we test that the current patch file will apply cleanly (if it does, we assume no new EE release)
-    $patch = escapeshellarg( pake_which( 'patch' ) );
+    $patch = eZPCPBuilder::getTool( 'patch', $opts );
     $patcherror = false;
     try
     {
@@ -910,7 +910,7 @@ function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
 
     // $> git tag -a -m "Community Project build 2012.11" "2012.11"
     // $> git  push  --tags
-    $git = escapeshellarg( pake_which( 'git' ) );
+    $git = eZPCPBuilder::getTool( 'git', $opts );
 
     foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
     {
@@ -1141,7 +1141,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
 
         pake_mkdirs( $docsdir . '/sami' );
         pake_remove_dir( $docsdir . '/sami/html' );
-        $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
+        $php = eZPCPBuilder::getTool( 'php', $opts );
+        $out = pake_sh( "$php " . escapeshellarg( $sami ) . ' parse --force ' . escapeshellarg( $samifile ) .
             ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
         $out = pake_sh( 'php ' . escapeshellarg( $sami ) . ' render ' . escapeshellarg( $samifile ) .
             ' >> ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
@@ -1183,7 +1184,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
         pake_mkdirs( $docsdir . '/docblox/html' );
         pake_remove_dir( $docsdir . '/docblox/html' );
-        $out = pake_sh( 'php -d memory_limit=3000M ' . escapeshellarg( $docblox ) .
+        $php = eZPCPBuilder::getTool( 'php', $opts );
+        $out = pake_sh( "$php -d memory_limit=3000M " . escapeshellarg( $docblox ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
@@ -1232,7 +1234,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             $errcode =  6143;
         }
         // phpdoc uses A LOT of memory as well
-        $out = pake_sh( "php -d error_reporting=$errcode -d memory_limit=3000M ". escapeshellarg( $phpdoc ) .
+        $php = eZPCPBuilder::getTool( 'php', $opts );
+        $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M ". escapeshellarg( $phpdoc ) .
             ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
@@ -1335,7 +1338,7 @@ function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     pake_write_file( $filename, eZPCPBuilder::jenkinsCall( $fileurl, $opts, 'GET', null, false ), 'cpb' );
 
     // and unzip eZ into it - in a folder with a specific name
-    $tar = escapeshellarg( pake_which( 'tar' ) );
+    $tar = eZPCPBuilder::getTool( 'tar', $opts );
     pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) ." && $tar -xjf " . escapeshellarg( $artifact['fileName'] ) );
 
     $currdir = pakeFinder::type( 'directory' )->in( $rootpath );
@@ -1881,7 +1884,7 @@ class eZPCPBuilder
         $archivedir = dirname( $archivefile );
         $extra = '';
 
-        $tar = escapeshellarg( pake_which( 'tar' ) );
+        $tar = eZPCPBuilder::getTool( 'tar', $opts );
 
         if ( substr( $archivefile, -7 ) == '.tar.gz' || substr( $archivefile, -4 ) == '.tgz' )
         {
@@ -1906,7 +1909,7 @@ class eZPCPBuilder
         }
         else if ( substr( $archivefile, -4 ) == '.zip' )
         {
-            $zip = escapeshellarg( pake_which( 'zip' ) );
+            $zip = self::getTool( 'zip', $opts );
             $cmd = "$zip -9 -r";
         }
         else
@@ -2001,6 +2004,19 @@ class eZPCPBuilder
             $dir .= "/$repo";
         }
         return $dir;
+    }
+
+
+    public static function getTool( $tool, $opts )
+    {
+        if ( isset( $opts['tools'][$tool] ) )
+        {
+            return escapeshellcmd( $opts['tools'][$tool] );
+        }
+        else
+        {
+            return escapeshellarg( pake_which( $tool ) );
+        }
     }
 
     /**

@@ -91,6 +91,12 @@ tools:
     sami: sami.php
     docblox: docblox.php
     phpdoc: phpdoc
+    # in case these are not in your path or you want to use alternative versions
+    php:
+    tar:
+    git:
+    patch:
+    zip:
 
 # Source repos (only git usable at the moment - see ezextensionbuilder for other options)
 git:
@@ -100,17 +106,26 @@ git:
         # in case a different branch is to be used for the build
         #branch:
 
+        # in case source is not in <build>/source/ezpublish/legacy
+        #local-path:
+
     community:
         url: git@github.com:ezsystems/ezpublish-community.git
 
         # in case a different branch is to be used for the build
         #branch:
 
+        # in case source is not in <build>/source/ezpublish/community
+        #local-path:
+
     kernel:
         url: git@github.com:ezsystems/ezpublish-kernel.git
 
         # in case a different branch is to be used for the build
         #branch:
+
+        # in case source is not in <build>/source/ezpublish/kernel
+        #local-path:
 
     # "ci" git repo, used by the eZP "main" build process
     ci-repo:
