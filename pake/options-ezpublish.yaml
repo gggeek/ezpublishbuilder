@@ -71,6 +71,25 @@ docs:
     # allow doc generating tools to build fully highlighted version of full source code
     include_sources: no
 
+    # allow using different doxyfile config files
+    doxyfile_master: pake/doxyfile_master
+
+    # allow completely different naming schemas:
+    # default dir for tool doc output is $docsdir/$tool (docsdir is passed via command-line)
+    # default dir for doc tarballs is dist.dir
+    doxygen:
+         dir:
+         zipdir:
+    sami:
+         dir:
+         zipdir:
+    docblox:
+         dir:
+         zipdir:
+    phpdoc:
+         dir:
+         zipdir:
+
     # tarballs to create. Do like github by default: zip + tar.gz
     create:
         zip: yes

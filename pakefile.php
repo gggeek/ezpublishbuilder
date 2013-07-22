@@ -1089,50 +1089,69 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         {
             $doxygen = escapeshellarg( $doxygen );
         }
+
+        if ( $opts['docs']['doxygen']['dir'] != '' )
+        {
+            $outdir = $opts['docs']['doxygen']['dir'];
+        }
+        else
+        {
+            $outdir = $docsdir . '/doxygen';
+        }
+
+        if ( $opts['docs']['doxygen']['zipdir'] != '' )
+        {
+            $zipdir = $opts['docs']['doxygen']['zipdir'];
+        }
+        else
+        {
+            $zipdir = $opts['dist']['dir'];
+        }
+
         $doxyfile = $opts['build']['dir'] . '/doxyfile';
         $excludes = '';
         foreach( $excludedirs as $excluded )
         {
             $excludes .= "$sourcedir/$excluded ";
         }
-        pake_copy( 'pake/doxyfile_master', $doxyfile, array( 'override' => true ) );
+        pake_copy( $opts['docs']['doxyfile_master'], $doxyfile, array( 'override' => true ) );
         file_put_contents( $doxyfile,
            "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName( true, $namesuffix ) .
            "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
-           "\nOUTPUT_DIRECTORY = " . $docsdir . '/doxygen' .
+           "\nOUTPUT_DIRECTORY = " . $outdir .
            "\nINPUT = " . $sourcedir .
            "\nEXCLUDE = " . $excludes .
            "\nSTRIP_FROM_PATH = " . $sourcedir .
            "\nSOURCE_BROWSER = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
 
-        pake_mkdirs( $docsdir . '/doxygen' );
-        pake_remove_dir( $docsdir . '/doxygen/html' );
+        pake_mkdirs( $outdir );
+        pake_remove_dir( $outdir . '/html' );
         $out = pake_sh( "$doxygen " . escapeshellarg( $doxyfile ) .
-            ' > ' . escapeshellarg( $docsdir . '/doxygen/generate.log' ) );
+            ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
 
         // test that there are any doc files created
-        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/doxygen/html' );
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $outdir . '/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Doxygen did not generate index.html file in $docsdir/doxygen/html" );
+            throw new pakeException( "Doxygen did not generate index.html file in $outdir/html" );
         }
 
         // zip the docs
         pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-doxygen-' . $stack;
         // get absolute path to dist dir
-        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        $target = realpath( $zipdir ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/doxygen/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
         }
     }
 
@@ -1149,6 +1168,25 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         {
             $sami = escapeshellarg( $sami );
         }
+
+        if ( $opts['docs']['sami']['dir'] != '' )
+        {
+            $outdir = $opts['docs']['sami']['dir'];
+        }
+        else
+        {
+            $outdir = $docsdir . '/sami';
+        }
+
+        if ( $opts['docs']['sami']['zipdir'] != '' )
+        {
+            $zipdir = $opts['docs']['sami']['zipdir'];
+        }
+        else
+        {
+            $zipdir = $opts['dist']['dir'];
+        }
+
         $samifile = $opts['build']['dir'] . '/samicfg.php';
         $excludes = array();
         foreach( $excludedirs as $excluded )
@@ -1161,7 +1199,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             'SOURCE' => str_replace( "'", "\'", $sourcedir ),
             'TITLE' => eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'],
             'EXCLUDE' => $excludes,
-            'OUTPUT' => $docsdir . '/sami/html',
+            'OUTPUT' => $outdir . '/html',
             'CACHEDIR' => $opts['build']['dir'] . '/sami_cache',
             'BASEDIR' => __DIR__
             ) );
@@ -1169,37 +1207,37 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         //clear sami cache, as sometimes it prevents docs from generating correctly
         pake_remove_dir( $opts['build']['dir'] . '/sami_cache' );
 
-        pake_mkdirs( $docsdir . '/sami' );
-        pake_remove_dir( $docsdir . '/sami/html' );
+        pake_mkdirs( $outdir );
+        pake_remove_dir( $outdir . '/html' );
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php $sami parse --force " . escapeshellarg( $samifile ) .
-            ' > ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
+            ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
         $out = pake_sh( "$php $sami render " . escapeshellarg( $samifile ) .
-            ' >> ' . escapeshellarg( $docsdir . '/sami/generate.log' ) );
+            ' >> ' . escapeshellarg( $outdir . '/generate.log' ) );
 
         // test that there are any doc files created
-        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/sami/html' );
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $outdir . '/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Sami did not generate index.html file in $docsdir/sami/html" );
+            throw new pakeException( "Sami did not generate index.html file in $outdir/html" );
         }
 
         // zip the docs
         pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-sami-' . $stack;
         // get absolute path to dist dir
-        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        $target = realpath( $zipdir ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/sami/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
         }
     }
 
@@ -1216,38 +1254,57 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         {
             $docblox = escapeshellarg( $docblox );
         }
-        pake_mkdirs( $docsdir . '/docblox/html' );
-        pake_remove_dir( $docsdir . '/docblox/html' );
+
+        if ( $opts['docs']['docblox']['dir'] != '' )
+        {
+            $outdir = $opts['docs']['docblox']['dir'];
+        }
+        else
+        {
+            $outdir = $docsdir . '/docblox';
+        }
+
+        if ( $opts['docs']['docblox']['zipdir'] != '' )
+        {
+            $zipdir = $opts['docs']['docblox']['zipdir'];
+        }
+        else
+        {
+            $zipdir = $opts['dist']['dir'];
+        }
+
+        pake_mkdirs( $outdir );
+        pake_remove_dir( $outdir . '/html' );
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php -d memory_limit=3000M $docblox" .
-            ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $docsdir . '/docblox/html' ) .
+            ' -d ' . escapeshellarg( $sourcedir ) . ' -t ' . escapeshellarg( $outdir . '/html' ) .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ) .
             ' --ignore ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
-            ' > ' . escapeshellarg( $docsdir . '/docblox/generate.log' ) );
+            ' > ' . escapeshellarg( $outdir . '/docblox/generate.log' ) );
         /// @todo sed -e "s,${checkoutpath},,g" ${doxydir}/generate.log > ${doxydir}/generate2.log
 
         // test that there are any doc files created
-        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/docblox/html' );
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $outdir . '/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Docblox did not generate index.html file in $docsdir/docblox/html" );
+            throw new pakeException( "Docblox did not generate index.html file in $outdir/html" );
         }
         // zip the docs
         pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-docblox-' . $stack;
-        $target = realpath( $opts['dist']['dir'] ) . '/' . $filename;
+        $target = realpath( $zipdir ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/docblox/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
         }
     }
 
@@ -1264,7 +1321,26 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         {
             $phpdoc = escapeshellarg( $phpdoc );
         }
-        pake_mkdirs( $docsdir . '/phpdoc/html' );
+
+        if ( $opts['docs']['phpdoc']['dir'] != '' )
+        {
+            $outdir = $opts['docs']['phpdoc']['dir'];
+        }
+        else
+        {
+            $outdir = $docsdir . '/phpdoc';
+        }
+
+        if ( $opts['docs']['phpdoc']['zipdir'] != '' )
+        {
+            $zipdir = $opts['docs']['phpdoc']['zipdir'];
+        }
+        else
+        {
+            $zipdir = $opts['dist']['dir'];
+        }
+
+        pake_mkdirs( $outdir . '/html' );
         // we try to avoid deprecation errors from phpdoc
         $errcode =  30719; // php 5.3, 5.4
         if ( version_compare( PHP_VERSION, '5.3.0' ) < 0 )
@@ -1274,36 +1350,36 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         // phpdoc uses A LOT of memory as well
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M $phpdoc" .
-            ' -t ' . escapeshellarg( $docsdir . '/phpdoc/html' ) .
+            ' -t ' . escapeshellarg( $outdir . '/phpdoc/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
             ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ( $opts['docs']['include_sources'] ? ' -s' : '' ) .
-            ' > ' . escapeshellarg( $docsdir . '/phpdoc/generate.log' ) );
+            ' > ' . escapeshellarg( $outdir . '/phpdoc/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
         ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
         ///       sed -e "s,${phpdocinstall},,g" ${phpdocdir}/generate3.log > ${phpdocdir}/generate4.log
         // test that there are any doc files created
-        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $docsdir . '/phpdoc/html' );
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $outdir . '/html' );
         if ( !count( $files ) )
         {
-            throw new pakeException( "Phpdoc did not generate index.html file in $docsdir/phpdoc/html" );
+            throw new pakeException( "Phpdoc did not generate index.html file in $outdir/phpdoc/html" );
         }
         // zip the docs
         pake_echo( "Creating tarballs of docs" );
         $filename = eZPCPBuilder::getProjFileName() . '-apidocs-phpdoc-' . $stack;
-        $target = realpath( $docsdir ) . '/' . $filename;
+        $target = realpath( $zipdir ) . '/' . $filename;
         if ( $opts['docs']['create']['zip'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.zip', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.zip', true );
         }
         if ( $opts['docs']['create']['tgz'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.tar.gz', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.gz', true );
         }
         if ( $opts['docs']['create']['bz2'] )
         {
-            eZPCPBuilder::archiveDir( $docsdir . '/phpdoc/html', $target . '.tar.bz2', true );
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
         }
     }
 }
@@ -1963,65 +2039,6 @@ class eZPCPBuilder
 
         pake_sh( self::getCdCmd( $workdir ) . " && $cmd $archivefile $extra $srcdir" );
 
-        /*
-
-        if ( substr( $archivefile, -3 ) == '.gz' )
-        {
-            $zipext = 'gz';
-            $target = substr( $archivefile, 0, -3 );
-        }
-        else if ( substr( $archivefile, -4 ) == '.bz2' )
-        {
-            $zipext = 'bz2';
-            $target = substr( $archivefile, 0, -4 );
-        }
-        else if ( substr( $archivefile, -6 ) == '.ezpkg' )
-        {
-            $zipext = 'ezpkg';
-            $target = substr( $archivefile, 0, -6 ) . '.tar';
-        }
-        else
-        {
-            $zipext = false;
-            $target = $archivefile;
-        }
-
-        $rootpath = str_replace( '\\', '/', realpath( $no_top_dir ? $sourcedir : dirname( $sourcedir ) ) );
-        $files = pakeFinder::type( 'any' )->in( $sourcedir );
-        // fix for win
-        foreach( $files as $i => $file )
-        {
-            $files[$i] = str_replace( '\\', '/', $file );
-        }
-        // current ezc code does not like having folders in list of files to pack
-        // unless they end in '/'
-        foreach( $files as $i => $f )
-        {
-            if ( is_dir( $f ) )
-            {
-                $files[$i] = $files[$i] . '/';
-            }
-        }
-        // we do not rely on this, not to depend on phar extension and also because it's slightly buggy if there are dots in archive file name
-        //pakeArchive::createArchive( $files, $opts['build']['dir'], $target, true );
-        $tar = ezcArchive::open( $target, $archivetype );
-        $tar->truncate();
-        $tar->append( $files, $rootpath );
-        $tar->close();
-        if ( $zipext )
-        {
-            $compress = 'zlib';
-            if ( $zipext == 'bz2' )
-            {
-                $compress = 'bzip2';
-            }
-            $fp = fopen( "compress.$compress://" . ( $zipext == 'ezpkg' ? substr( $target, 0, -4 ) : $target ) . ".$zipext", 'wb9' );
-            /// @todo read file by small chunks to avoid memory exhaustion
-            fwrite( $fp, file_get_contents( $target ) );
-            fclose( $fp );
-            unlink( $target );
-        }*/
-
         pake_echo_action( 'file+', $archivefile );
     }
 
@@ -2049,7 +2066,6 @@ class eZPCPBuilder
         }
         return $dir;
     }
-
 
     public static function getTool( $tool, $opts=false )
     {
