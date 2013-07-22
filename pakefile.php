@@ -1103,8 +1103,8 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
            "\nINPUT = " . $sourcedir .
            "\nEXCLUDE = " . $excludes .
            "\nSTRIP_FROM_PATH = " . $sourcedir .
-           "\nINCLUDE_SOURCES = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
-
+           "\nSOURCE_BROWSER = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
+die('!');
         pake_mkdirs( $docsdir . '/doxygen' );
         pake_remove_dir( $docsdir . '/doxygen/html' );
         $out = pake_sh( "$doxygen " . escapeshellarg( $doxyfile ) .
@@ -1725,17 +1725,25 @@ class eZPCPBuilder
         {
             $cfgfile  ="pake/options-$projname.yaml";
         }
-        $overrideopts = array();
-        foreach( $cliopts as $opt )
+        foreach( $cliopts as $opt => $val )
         {
             if ( substr( $opt, 0, 7 ) == 'option.')
             {
-                $overrideopts[] = explode( '.', substr( $opt, 7 ) );
+                unset( $cliopts[$opt] );
+
+                // transform dotted notation in array structure
+                $work = array_reverse( explode( '.', substr( $opt, 7 ) ) );
+                $built = array( array_shift( $work ) => $val );
+                foreach( $work as $key )
+                {
+                    $built = array( $key=> $built );
+                }
+                self::recursivemerge( $cliopts, $built );
             }
         }
         if ( !isset( self::$options[$projname] ) || !is_array( self::$options[$projname] ) )
         {
-            self::loadConfiguration( $cfgfile, $projname, $projversion, $cliopts, $overrideopts );
+            self::loadConfiguration( $cfgfile, $projname, $projversion, $cliopts );
         }
         return self::$options[$projname];
     }
@@ -1771,6 +1779,7 @@ class eZPCPBuilder
         // merge options from cli
         if ( count( $overrideoptions ) )
         {
+            //var_dump( $overrideoptions );
             self::recursivemerge( $options, $overrideoptions );
         }
 
