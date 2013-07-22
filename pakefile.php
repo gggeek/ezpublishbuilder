@@ -1104,7 +1104,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
            "\nEXCLUDE = " . $excludes .
            "\nSTRIP_FROM_PATH = " . $sourcedir .
            "\nSOURCE_BROWSER = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
-die('!');
+
         pake_mkdirs( $docsdir . '/doxygen' );
         pake_remove_dir( $docsdir . '/doxygen/html' );
         $out = pake_sh( "$doxygen " . escapeshellarg( $doxyfile ) .
