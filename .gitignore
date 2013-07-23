@@ -1,6 +1,8 @@
 build/
 dist/
 ant/
+.idea/
+atlassian-ide-plugin.xml
 pake/options-ezpublish-user.yaml
 *.PHPEditProject
 *.bak
