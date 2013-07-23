@@ -1781,10 +1781,12 @@ class eZPCPBuilder
     }
 
     /**
-    * Loads build options from config file(s)
+    * Loads build options from config file(s) and ommand line
     * @param array $opts the 1st option is the version to be built. If given, it overrides the one in the config file
-    * @param array $cliopts optional parameters. If "config-file" is set, that will be used instead of options-ezpublish.yaml.
-    *              Also all options starting with "option." can be set to override config-faile values
+    * @param array $cliopts optional parameters.
+    *              If "config-file" is set, that will be used instead of pake/options-ezpublish.yaml.
+    *              If "user-config-file" is set, that will be used instead of pake/options-ezpublish-user.yaml
+    *              Also all cli options starting with "option." will be used to override config-file values
     * @return array all the options
     *
     * @todo remove support for a separate project name, as it is leftover from ezextensionbuilder
@@ -1799,8 +1801,18 @@ class eZPCPBuilder
         }
         else
         {
-            $cfgfile  ="pake/options-$projname.yaml";
+            $cfgfile = "pake/options-$projname.yaml";
         }
+
+        if ( isset( $cliopts['user-config-file'] ) )
+        {
+            $usercfgfile = $cliopts['user-config-file'];
+        }
+        else
+        {
+            $usercfgfile = str_replace( '.yaml', '-user.yaml', $cfgfile );
+        }
+
         foreach( $cliopts as $opt => $val )
         {
             if ( substr( $opt, 0, 7 ) == 'option.')
@@ -1819,13 +1831,13 @@ class eZPCPBuilder
         }
         if ( !isset( self::$options[$projname] ) || !is_array( self::$options[$projname] ) )
         {
-            self::loadConfiguration( $cfgfile, $projname, $projversion, $cliopts );
+            self::loadConfiguration( $cfgfile, $usercfgfile, $projname, $projversion, $cliopts );
         }
         return self::$options[$projname];
     }
 
     /// @bug this only works as long as all defaults are 2 levels deep
-    static protected function loadConfiguration ( $infile='pake/options.yaml', $projname='', $projversion='', $overrideoptions=array() )
+    static protected function loadConfiguration ( $infile='pake/options.yaml', $useroptsfile='', $projname='', $projversion='', $overrideoptions=array() )
     {
         /// @todo review the list of mandatory options
         $mandatory_opts = array( /*'ezpublish' => array( 'name' ),*/ 'version' => array( 'major', 'minor', 'release' ) );
@@ -1844,8 +1856,7 @@ class eZPCPBuilder
         $options = pakeYaml::loadFile( $infile );
 
         // merge data from local config file
-        $useroptsfile = str_replace( '.yaml', '-user.yaml', $infile );
-        if ( file_exists( $useroptsfile ) )
+        if ( $useroptsfile != '' && file_exists( $useroptsfile ) )
         {
             $useroptions = pakeYaml::loadFile( $useroptsfile );
             //var_dump( $useroptions );
