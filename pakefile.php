@@ -1350,12 +1350,12 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         // phpdoc uses A LOT of memory as well
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M $phpdoc" .
-            ' -t ' . escapeshellarg( $outdir . '/phpdoc/html' ) .
+            ' -t ' . escapeshellarg( $outdir . '/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
             ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
             ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
             ( $opts['docs']['include_sources'] ? ' -s' : '' ) .
-            ' > ' . escapeshellarg( $outdir . '/phpdoc/generate.log' ) );
+            ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
         ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
         ///       sed -e "s,${phpdocinstall},,g" ${phpdocdir}/generate3.log > ${phpdocdir}/generate4.log
