@@ -1351,10 +1351,10 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         $php = eZPCPBuilder::getTool( 'php', $opts );
         $out = pake_sh( "$php -d error_reporting=$errcode -d memory_limit=3000M $phpdoc" .
             ' -t ' . escapeshellarg( $outdir . '/html' ) .
-            ' -d ' . escapeshellarg( $sourcedir ) . ' -pp' .
-            ' -ti ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
+            ' -d ' . escapeshellarg( $sourcedir ) . ' --parseprivate' .
+            ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
             ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
-            ( $opts['docs']['include_sources'] ? ' -s' : '' ) .
+            ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
             ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
         ///       sed -e "s,${checkoutpath},,g" ${phpdocdir}/generate2.log > ${phpdocdir}/generate3.log
