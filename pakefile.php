@@ -1038,7 +1038,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             {
                 $docsdir = $opts['build']['dir'] . '/apidocs/' . eZPCPBuilder::getProjName();
             }
-            $files = pakeFinder::type( 'file' )->name( 'autoload.php' )->maxdepth( 0 )->in( $sourcedir );
+            $files = pakeFinder::type( 'file' )->name( 'runcronjobs.php' )->maxdepth( 0 )->in( $sourcedir );
             $namesuffix = $opts['docs']['name_suffix']['4x_stack'];
             break;
         default:
