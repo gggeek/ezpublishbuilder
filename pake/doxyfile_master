@@ -161,11 +161,13 @@ HTML_TIMESTAMP         = YES
 #HTML_ALIGN_MEMBERS     = YES
 HTML_DYNAMIC_SECTIONS  = YES
 HTML_INDEX_NUM_ENTRIES = 100
-GENERATE_DOCSET        = NO
-DOCSET_FEEDNAME        = "Doxygen generated docs"
-DOCSET_BUNDLE_ID       = org.doxygen.Project
-DOCSET_PUBLISHER_ID    = org.doxygen.Publisher
-DOCSET_PUBLISHER_NAME  = Publisher
+
+###GENERATE_DOCSET        = YES
+DOCSET_FEEDNAME        = "eZ"
+DOCSET_BUNDLE_ID       = no.ez.ezpublish
+DOCSET_PUBLISHER_ID    = no.ez
+DOCSET_PUBLISHER_NAME  = eZ Systems
+
 GENERATE_HTMLHELP      = NO
 CHM_FILE               =
 HHC_LOCATION           =

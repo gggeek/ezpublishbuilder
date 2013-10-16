@@ -60,6 +60,8 @@ create:
     mswpipackage: yes
 
     doxygen_doc: yes
+    # EXPERIMENTAL docset support needs xcode installed
+    docset_doc: no
     sami_doc: yes
     # docblox has a hard time coping with the New Stack
     docblox_doc: no
@@ -80,6 +82,10 @@ docs:
     doxygen:
          dir:
          zipdir:
+    docset:
+         dir:
+         zipdir:
+         feeddir:
     sami:
          dir:
          zipdir:

@@ -1061,7 +1061,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             $namesuffix = $opts['docs']['name_suffix']['new_stack'];
     }
 
-    if ( $opts['create']['doxygen_doc'] || $opts['create']['docblox_doc'] || $opts['create']['phpdoc_doc']  || $opts['create']['sami_doc'] )
+    if ( $opts['create']['doxygen_doc'] || $opts['create']['docblox_doc'] || $opts['create']['phpdoc_doc'] || $opts['create']['sami_doc'] || $opts['create']['docset_doc'] )
     {
         if ( !count( $files ) )
         {
@@ -1116,6 +1116,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         }
         pake_copy( $opts['docs']['doxyfile_master'], $doxyfile, array( 'override' => true ) );
         file_put_contents( $doxyfile,
+           "\nGENERATE_DOCSET        = NO" .
            "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName( true, $namesuffix ) .
            "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
            "\nOUTPUT_DIRECTORY = " . $outdir .
@@ -1152,6 +1153,116 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
         if ( $opts['docs']['create']['bz2'] )
         {
             eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
+        }
+    }
+
+    if ( $opts['create']['docset_doc'] )
+    {
+        pake_echo( "Generating docset docs using Doxygen" );
+
+        $doxygen = @$cliopts['doxygen'];
+        if ( $doxygen == '' )
+        {
+            $doxygen = eZPCPBuilder::getTool( 'doxygen', $opts );
+        }
+        else
+        {
+            $doxygen = escapeshellarg( $doxygen );
+        }
+
+        if ( $opts['docs']['docset']['dir'] != '' )
+        {
+            $outdir = $opts['docs']['docset']['dir'];
+        }
+        else
+        {
+            $outdir = $docsdir . '/docset';
+        }
+
+        if ( $opts['docs']['docset']['zipdir'] != '' )
+        {
+            $zipdir = $opts['docs']['docset']['zipdir'];
+        }
+        else
+        {
+            $zipdir = $opts['dist']['dir'];
+        }
+
+        $doxyfile = $opts['build']['dir'] . '/doxyfile';
+        $excludes = '';
+        foreach( $excludedirs as $excluded )
+        {
+            $excludes .= "$sourcedir/$excluded ";
+        }
+        pake_copy( $opts['docs']['doxyfile_master'], $doxyfile, array( 'override' => true ) );
+        file_put_contents( $doxyfile,
+            "\nGENERATE_DOCSET        = YES" .
+            "\nDISABLE_INDEX          = YES" .
+            "\nSEARCHENGINE           = NO" .
+            "\nGENERATE_TREEVIEW      = NO" .
+            "\nPROJECT_NAME = " . eZPCPBuilder::getLongProjName( true, $namesuffix ) .
+            "\nPROJECT_NUMBER = " . $opts['version']['alias'] .
+            "\nOUTPUT_DIRECTORY = " . $outdir .
+            "\nINPUT = " . $sourcedir .
+            "\nEXCLUDE = " . $excludes .
+            "\nSTRIP_FROM_PATH = " . $sourcedir .
+            "\nSOURCE_BROWSER = " . ( $opts['docs']['include_sources'] ? 'yes' : 'no') , FILE_APPEND );
+
+        pake_mkdirs( $outdir );
+        pake_remove_dir( $outdir . '/html' );
+        $out = pake_sh( "$doxygen " . escapeshellarg( $doxyfile ) .
+        ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
+
+        // test that there are any doc files created
+        $files = pakeFinder::type( 'file' )->name( 'index.html' )->maxdepth( 0 )->in( $outdir . '/html' );
+        if ( !count( $files ) )
+        {
+            throw new pakeException( "Doxygen did not generate index.html file in $outdir/html" );
+        }
+
+        /// PROBLEM: make invokes docsetutil, which does not seem to be available on linux
+        $out = pake_sh( "cd " . escapeshellarg( "$outdir/html" ) . " && make" );
+
+        /// TO BE COMPLETED...
+
+        // zip the docs
+        pake_echo( "Creating tarballs of docs" );
+        $filename = eZPCPBuilder::getProjFileName() . '-apidocs-docset-' . $stack;
+        // get absolute path to dist dir
+        $target = realpath( $zipdir ) . '/' . $filename;
+        if ( $opts['docs']['create']['zip'] )
+        {
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.zip', true );
+        }
+        if ( $opts['docs']['create']['tgz'] )
+        {
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.gz', true );
+        }
+        if ( $opts['docs']['create']['bz2'] )
+        {
+            eZPCPBuilder::archiveDir( $outdir . '/html', $target . '.tar.bz2', true );
+        }
+
+        if ( $opts['docs']['docset']['feeddir'] )
+        {
+            // update the feed file
+            $feedFile = $opts['docs']['docset']['feeddir'] . 'XXX' . ".xml";
+            $fileUrl = str_replace( '', '', $zipdir );
+            $feedContents = "<entry>\n<version>{$opts['version']['alias']}</version>";
+            if ( $opts['docs']['create']['zip'] )
+            {
+                $feedContents .= "\n<url>" . "YYY" . "</url>";
+            }
+            if ( $opts['docs']['create']['tgz'] )
+            {
+                $feedContents .= "\n<url>" . "YYY" . "</url>";
+            }
+            if ( $opts['docs']['create']['bz2'] )
+            {
+                $feedContents .= "\n<url>" . "YYY" . "</url>";
+            }
+            $feedContents .= "\n</entry>";
+            file_put_contents( $feedFile, $feedContents );
         }
     }
 
