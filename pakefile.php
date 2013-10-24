@@ -937,7 +937,7 @@ function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
 
         $rootpath = eZPCPBuilder::getSourceDir( $opts, $repo );
 
-        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git tag -a -m \"Community Project build {$opts['version']['alias']}\" \"{$opts['version']['alias']}\" && $git push --tags " );
+        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git tag -a -m \"Community Project build {$opts['version']['alias']}\" \"" . eZPCPBuilder::tagNameFromVersionName( $opts['version']['alias'] ) ."\" && $git push --tags " );
     }
 }
 
@@ -2275,6 +2275,10 @@ class eZPCPBuilder
         return $previousrev;
     }
 
+    public static function tagNameFromVersionName( $versionName, $opts )
+    {
+        return $opts['git']['tag_prefix'] . $versionName . $opts['git']['tag_postfix'];
+    }
 
     /**
     * Classifies all entries in git changelog as 4 types.

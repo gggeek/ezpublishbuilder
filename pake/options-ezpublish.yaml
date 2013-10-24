@@ -24,7 +24,7 @@ version:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
         # Useful when e.g. skipping a version
-        name: v2013.09.0
+        name: 2013.09.0
 
         legacy:
             # git tag for previous version build of the ezpublish legacy repo, used in changelog generation.
@@ -123,6 +123,10 @@ tools:
 
 # Source repos (only git usable at the moment - see ezextensionbuilder for other options)
 git:
+    # Use if the tag scheme used on github does not match exactly the revision names
+    tag_prefix: v
+    tag_postfix:
+
     legacy:
         url: git@github.com:ezsystems/ezpublish-legacy.git
 
