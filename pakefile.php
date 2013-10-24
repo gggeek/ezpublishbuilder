@@ -2152,8 +2152,8 @@ class eZPCPBuilder
 
     /**
     * Returns the name of the previous version than the current one.
-    * Assumes 2011.1 .. 2011.12 naming schema.
-    * Partial support for 2012.1.2 schema (eg 2011.1.2 -> 2011.1.1 -> 2011.1 -> 20112.12)
+    * Assumes 2011.01 .. 2011.12 naming schema.
+    * Partial support for 2012.01.2 schema (eg 2011.01.2 -> 2011.01.1 -> 2011.01 -> 20112.12)
     * User can define an alternative previous version in config file.
     * @bug what if previous of 2012.4 is 2012.3.9?
     * @return string
@@ -2176,7 +2176,7 @@ class eZPCPBuilder
             }
             if ( $opts['version']['minor'] > 1 )
             {
-                return  $opts['version']['major'] . '.' . ( $opts['version']['minor'] - 1 );
+                return $opts['version']['major'] . '.' . ( $opts['version']['minor'] <= 10 ? '0' : '' ) . ( $opts['version']['minor'] - 1 );
             }
             else
             {
