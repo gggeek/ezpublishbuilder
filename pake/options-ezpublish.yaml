@@ -13,8 +13,8 @@ ezpublish:
 
 version:
     # the version number set here can be overridden via command line arguments
-    major: 2013
-    minor: 4
+    major: v2013
+    minor: 10
     release: 0
 
     # defaults to $major.$minor
@@ -24,7 +24,7 @@ version:
         # Previous version name - used eg. for changelog filename.
         # If not set, it is generated as 'previous month than current version being built'
         # Useful when e.g. skipping a version
-        name: 2013.1
+        name: v2013.09.0
 
         legacy:
             # git tag for previous version build of the ezpublish legacy repo, used in changelog generation.
@@ -39,12 +39,12 @@ version:
         community:
             # git tag for previous version build on the ezpublish community repo, used in changelog generation.
             # See above for explanations
-            #git-revision: 7e8f29ad01c8df0e8815eb80a5f3b61628072821
+            #git-revision: 1be36ba8af465767c2ad0c778447c62bb05d4d91
 
         kernel:
             # git tag for previous version build on the ezpublish kernel, used in changelog generation.
             # See above for explanations
-            git-revision: bdbe486e48a03555f514c463d79c01759d0d9aa8
+            #git-revision: aac3a2389d998835c3fbfbca878ac5a4d22c11f2
 
 build:
     # Directory for the build.
@@ -61,9 +61,9 @@ create:
 
     doxygen_doc: yes
     sami_doc: yes
-    # docblox has a hard time coping with the New Stack
+    # deprecated: phpdoc 2.0 superseded docblox
     docblox_doc: no
-    # deprecated: docblox is the new phpdoc 2.0
+    # nb: phpdoc 2.0, NOT phpdoc 1
     phpdoc_doc: no
 
 # Options for generation of documentation
@@ -112,6 +112,7 @@ tools:
     doxygen: doxygen
     sami: sami.php
     docblox: docblox.php
+    # nb: phpdoc 2
     phpdoc: phpdoc
     # in case these are not in your path or you want to use alternative versions
     php:

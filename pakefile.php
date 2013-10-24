@@ -251,6 +251,8 @@ function run_update_source( $task=null, $args=array(), $cliopts=array() )
         /// @todo test that the pull does not fail
         $repo->pull();
 
+        /// remember to fetch all tags as well
+        pake_sh( eZPCPBuilder::getCdCmd( $rootpath ) . " && $git fetch --tags" );
     }
 }
 
@@ -274,7 +276,7 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
         {
             $previousrev = $opts['version']['previous'][$repo]['git-revision'];
 
-            pake_echo ( "Git revision of previous release ftaken from config file: $previousrev" );
+            pake_echo ( "Git revision of previous release for repo $repo taken from config file: $previousrev" );
         }
         else
         {
@@ -293,9 +295,10 @@ function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
             //{
             //    throw new pakeException( "Previous revision number of $repo repo MUST be given in the config file: version:previous:$repo:git-revision" );
             //}
+
+            pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
         }
 
-        pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
         pake_echo ( "Extracting changelog entries from git log" );
         $changelogEntries[$repo] = eZPCPBuilder::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
     }
