@@ -1356,7 +1356,7 @@ function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliop
             ' -t ' . escapeshellarg( $outdir . '/html' ) .
             ' -d ' . escapeshellarg( $sourcedir ) . ' --parseprivate' .
             ' --title ' . escapeshellarg( eZPCPBuilder::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'] ).
-            ' -i ' . escapeshellarg( implode( ',', $excludedirs ) ) .
+            ' -i ' . escapeshellarg( implode( '/*,', $excludedirs ) . '/*' ) .
             ( $opts['docs']['include_sources'] ? ' --sourcecode' : '' ) .
             ' > ' . escapeshellarg( $outdir . '/generate.log' ) );
         /// @todo sed -e "s,${phpdocdir},,g" ${phpdocdir}/generate.log > ${phpdocdir}/generate2.log
