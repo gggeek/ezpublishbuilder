@@ -2,7 +2,10 @@ build/
 dist/
 ant/
 .idea/
+vendor/
 atlassian-ide-plugin.xml
 pake/options-ezpublish-user.yaml
 *.PHPEditProject
 *.bak
+composer.lock
+composer.phar

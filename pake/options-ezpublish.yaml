@@ -59,12 +59,12 @@ create:
     # Build products
     mswpipackage: yes
 
-    doxygen_doc: yes
-    sami_doc: yes
+    doxygen_doc: no
+    sami_doc: no
     # deprecated: phpdoc 2.0 superseded docblox
     docblox_doc: no
     # nb: phpdoc 2.0, NOT phpdoc 1
-    phpdoc_doc: no
+    phpdoc_doc: yes
 
 # Options for generation of documentation
 docs:
