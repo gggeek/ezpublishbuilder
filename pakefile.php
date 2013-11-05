@@ -28,7 +28,7 @@ if ( !function_exists( 'pake_task' ) )
 else
 {
 
-// this is unfortunately a necessary hack:: ideally we would always check for
+// this is unfortunately a necessary hack: ideally we would always check for
 // proper pake version, but version 0.1 of this extension was
 // shipped with a faulty pake_version, so we cannot check for required version
 // when using the bundled pake.

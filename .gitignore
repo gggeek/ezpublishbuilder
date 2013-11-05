@@ -3,6 +3,7 @@ dist/
 ant/
 .idea/
 vendor/
+var/
 atlassian-ide-plugin.xml
 pake/options-ezpublish-user.yaml
 *.PHPEditProject

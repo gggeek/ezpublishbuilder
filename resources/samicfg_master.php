@@ -15,6 +15,6 @@ return new Sami( $iterator, array(
     'build_dir'           => '//OUTPUT//',
     'cache_dir'           => '//CACHEDIR//',
     'theme'               => 'piwik',
-    'template_dirs'       => array( '//BASEDIR///pake/samithemes' ),
+    'template_dirs'       => array( '//BASEDIR///resources/samithemes' ),
     //'include_parent_data' => false,
 ));

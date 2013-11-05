@@ -72,7 +72,7 @@ docs:
     include_sources: no
 
     # allow using different doxyfile config files
-    doxyfile_master: pake/doxyfile_master
+    doxyfile_master: resources/doxyfile_master
 
     # allow completely different naming schemas:
     # default dir for tool doc output is $docsdir/$tool (docsdir is passed via command-line)

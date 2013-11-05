@@ -1159,7 +1159,7 @@ class Tasks extends Builder
                 $excludes[] = str_replace( "'", "\'", $excluded );
             }
             $excludes = implode( "' )\n    ->exclude( '", $excludes );
-            pake_copy( 'pake/samicfg_master.php', $samifile, array( 'override' => true ) );
+            pake_copy( self::getResourceDir() . '/samicfg_master.php', $samifile, array( 'override' => true ) );
             pake_replace_tokens( 'samicfg.php', $opts['build']['dir'], '//', '//', array(
                 'SOURCE' => str_replace( "'", "\'", $sourcedir ),
                 'TITLE' => self::getLongProjName( true, $namesuffix ) . ' ' . $opts['version']['alias'],
@@ -1445,16 +1445,16 @@ class Tasks extends Builder
 
                 /// @todo shall we check that there's no spurious file in $toppath?
 
-                $pakepath = dirname( __FILE__ ) . '/pake';
-                pake_copy( $pakepath . '/wpifiles/install.sql', $toppath . '/install.sql', array( 'override' => true ) );
+                $resourcesPath = self::getResourceDir();
+                pake_copy( $resourcesPath . '/wpifiles/install.sql', $toppath . '/install.sql', array( 'override' => true ) );
 
                 /// @todo: if the $rootpath is different from "ezpublish", the manifest and parameters files need to be altered accordingly
                 /// after copying them to their location
-                pake_copy( $pakepath . '/wpifiles/manifest.xml', $toppath . '/manifest.xml', array( 'override' => true ) );
-                pake_copy( $pakepath . '/wpifiles/parameters.xml', $toppath . '/parameters.xml', array( 'override' => true ) );
+                pake_copy( $resourcesPath . '/wpifiles/manifest.xml', $toppath . '/manifest.xml', array( 'override' => true ) );
+                pake_copy( $resourcesPath . '/wpifiles/parameters.xml', $toppath . '/parameters.xml', array( 'override' => true ) );
 
                 // this one is overwritten
-                pake_copy( $pakepath . '/wpifiles/kickstart.ini', $rootpath . '/kickstart.ini', array( 'override' => true ) );
+                pake_copy( $resourcesPath . '/wpifiles/kickstart.ini', $rootpath . '/kickstart.ini', array( 'override' => true ) );
 
                 if ( is_file( $rootpath . '/web.config-RECOMMENDED' ) )
                 {
@@ -1462,7 +1462,7 @@ class Tasks extends Builder
                 }
                 else if ( !is_file( $rootpath . '/web.config' ) )
                 {
-                    pake_copy( $pakepath . '/wpifiles/web.config', $rootpath . '/web.config', array( 'override' => true ) );
+                    pake_copy( $resourcesPath . '/wpifiles/web.config', $rootpath . '/web.config', array( 'override' => true ) );
                 }
 
                 // create zip
@@ -1473,7 +1473,7 @@ class Tasks extends Builder
 
                 // update feed file
                 $feedfile = 'ezpcpmswpifeed.xml';
-                pake_copy( $pakepath . '/wpifiles/' . $feedfile, $opts['dist']['dir'] . '/' . $feedfile );
+                pake_copy( $resourcesPath . '/wpifiles/' . $feedfile, $opts['dist']['dir'] . '/' . $feedfile );
                 $files = pakeFinder::type( 'file' )->name( $feedfile )->maxdepth( 0 )->in( $opts['dist']['dir'] );
                 //pake_replace_regexp( $files, $opts['dist']['dir'], array(
                 //) );

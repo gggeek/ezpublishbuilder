@@ -17,18 +17,32 @@ use ZipArchive;
 class Builder
 {
     static $options = null;
-    //static $defaultext = null;
-    static $installurl = 'http://svn.projects.ez.no/ezpublishbuilder/stable';
+    protected static $options_dir = 'pake';
     const VERSION = '0.5';
     const MIN_PAKE_VERSION = '1.7.4';
     static $projname = 'ezpublish';
-    //static $ezpublish5ProjName = 'ezpublish5';
-    //static $ezpublishApiProjName = 'ezpublishApi';
 
-    // same values as ezarchive
-    const ZIP = 10;
-    const GZIP = 20;
-    const BZIP2 = 30;
+    static function getOptionsDir()
+    {
+        return self::$options_dir;
+    }
+
+    static function setConfigDir( $cliopts = array() )
+    {
+        if ( isset( $cliopts['config-dir'] ) )
+        {
+            if( !is_dir( $cliopts['config-dir'] ) )
+            {
+                throw new PakeOption( "Could not find configuration-file directory {$cliopts['config-dir']}" );
+            }
+            self::$options_dir = $cliopts['config-dir'];
+        }
+    }
+
+    static function getResourceDir()
+    {
+        return __DIR__ . '/../resources';
+    }
 
     // leftover from ezextensionbuilder - currently hardcoded in the class
     static function getProjName()
@@ -71,6 +85,8 @@ class Builder
      */
     static function getOpts( $opts=array(), $cliopts=array() )
     {
+        self::setConfigDir( $cliopts );
+
         $projname = self::getProjName();
         $projversion = @$opts[0];
         if ( isset( $cliopts['config-file'] ) )
@@ -79,7 +95,7 @@ class Builder
         }
         else
         {
-            $cfgfile = "pake/options-$projname.yaml";
+            $cfgfile = self::getOptionsDir() . "/options-$projname.yaml";
         }
 
         if ( isset( $cliopts['user-config-file'] ) )
@@ -88,9 +104,10 @@ class Builder
         }
         else
         {
-            $usercfgfile = str_replace( '.yaml', '-user.yaml', $cfgfile );
+            $usercfgfile = self::getOptionsDir() . "/options-$projname-user.yaml";
         }
 
+        // command-line config options
         foreach( $cliopts as $opt => $val )
         {
             if ( substr( $opt, 0, 7 ) == 'option.')
@@ -115,15 +132,19 @@ class Builder
     }
 
     /// @bug this only works as long as all defaults are 2 levels deep
-    static protected function loadConfiguration ( $infile='pake/options.yaml', $useroptsfile='', $projname='', $projversion='', $overrideoptions=array() )
+    static protected function loadConfiguration ( $infile='', $useroptsfile='', $projname='', $projversion='', $overrideoptions=array() )
     {
+        if ( $infile == '' )
+        {
+            $infile = self::getOptionsDir() . '/options' . ( $projname != '' ? "-$projname" : '' ) . '.yaml';
+        }
         /// @todo review the list of mandatory options
         $mandatory_opts = array( /*'ezpublish' => array( 'name' ),*/ 'version' => array( 'major', 'minor', 'release' ) );
         $default_opts = array(
             'build' => array( 'dir' => 'build' ),
             'dist' => array( 'dir' => 'dist' ),
             'docs' => array( 'dir' => 'dist/docs' ),
-            'create' => array( 'mswpipackage' => true, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, 'sami_doc' => false /*'ezpackage' => false, 'pearpackage' => false*/ ),
+            'create' => array( 'mswpipackage' => false, /*'tarball' => false, 'zip' => false, 'filelist_md5' => true,*/ 'doxygen_doc' => false, 'docblox_doc' => false, 'phpdoc_doc' => false, 'sami_doc' => false /*'ezpackage' => false, 'pearpackage' => false*/ ),
             //'version' => array( 'license' => 'GNU General Public License v2.0' ),
             //'releasenr' => array( 'separator' => '.' ),
             //'files' => array( 'to_parse' => array(), 'to_exclude' => array(), 'gnu_dir' => '', 'sql_files' => array( 'db_schema' => 'schema.sql', 'db_data' => 'cleandata.sql' ) ),
