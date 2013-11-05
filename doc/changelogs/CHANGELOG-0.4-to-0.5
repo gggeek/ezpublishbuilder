@@ -8,6 +8,14 @@ Changes for version 0.5.0 - released 2013/xx/yy
   Used templates are moved to the "resources" dir.
   Pake is not bundled anymore.
 
-. on the CLI, both the directory for config files and the config files can be specified
+. on the CLI, both the directory for config files and the config files themselves can be specified
+
+. removed options --doxygen, --docblox, --sami and --phpdoc to doc-generating task invocation.
+  Use instead --option.tools.doxygen, --option.tools.docblox etc... 
+
+. when generating changelog, categorize pull requests mentioning an issue based on their jira type if
+  type is not evident by wording ussed in commit message
 
 *Bugfixes:
+
+. remove the part after the "/" in attributing pull requests

@@ -9,7 +9,7 @@
 namespace eZPCPBuilder;
 
 use pakeException;
-use ZipArchive;
+use pakeYaml;
 
 /**
  * Class implementing the core logic for our pake tasks
@@ -304,7 +304,23 @@ class Builder
         return $dir;
     }
 
-    public static function getTool( $tool, $opts=false )
+    /**
+     * Tries to find out the vendor dir of composer - should work both when ezextbuilder is main project and when it is
+     * a dependency. Returns FALSE if not found
+     *
+     * @param string $vendorPrefix
+     * @return string
+     */
+    static function getVendorDir( $vendorPrefix = 'vendor' )
+    {
+        if( is_dir( __DIR__ . "/../$vendorPrefix/composer" ) && is_file( __DIR__ . "/../$vendorPrefix/autoload.php" ) )
+        {
+            return realpath( __DIR__ . "/../$vendorPrefix" );
+        }
+        return false;
+    }
+
+    public static function getTool( $tool, $opts=false, $composerBinary=false )
     {
         // dirty workaround
         if ( $opts == false )
@@ -317,6 +333,19 @@ class Builder
         }
         else
         {
+            if ( $composerBinary )
+            {
+                $vendorDir = self::getVendorDir();
+                if ( file_exists( $vendorDir . "/bin/$tool" ) )
+                {
+                    $file = realpath( $vendorDir . "/bin/$tool" );
+                    if ( strtoupper( substr( PHP_OS, 0, 3) ) === 'WIN' )
+                    {
+                        $file .= '.bat';
+                    }
+                    return escapeshellarg( $file );
+                }
+            }
             return escapeshellarg( pake_which( $tool ) );
         }
     }
@@ -506,6 +535,7 @@ class Builder
     /**
      * Classifies all entries in git changelog as 4 types.
      * Each entry is returned starting with "- "
+     * @return array the 1st-level elements are themselves matrixes, except for 'unmatchedEntries' which is a plain array
      */
     public static function extractChangelogEntriesFromRepo( $rootpath, $previousrev )
     {
@@ -525,25 +555,60 @@ class Builder
                 pake_echo( "Git log returns an empty string - generating an empty changelog file. Please check if there is any problem with $rootpath" );
             }
 
-            // extract known wit issues
+            // extract and categorize issues using known patterns
             //preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|for ticket)? #0?([0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
-            preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|for ticket)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
-            preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );
-            preg_match_all( "/^Merge pull request #0?([0-9]+):? (.*)$/mi", $changelogText, $pullreqsMatches, PREG_PATTERN_ORDER );
+            preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|issue|for ticket)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
+            preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement|issue)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );
+            preg_match_all( "!^Merge pull request #0?([0-9]+):? ([^/]*)(?:/.*)?$!mi", $changelogText, $pullreqsMatches, PREG_PATTERN_ORDER );
 
-            // remove all bugfixes & enhancements from the changelog to get unmatched items
-            $unmatchedEntries = array_map(
+            // remove all bugfixes & enhancements from the changelog to get "unmatched" items
+            $unmatchedEntries = array_diff(
+                    $changelogArray,
+                    $bugfixesMatches[0],
+                    $enhancementsMatches[0],
+                    $pullreqsMatches[0] );
+
+            /// if we identify an issue number, look up its type in jira to determine its type
+            $issueTypes = array();
+            foreach( $unmatchedEntries as $i => $entry )
+            {
+                if ( preg_match( '/(EZP-[0-9]+):? (.*)$/i', $entry, $matches ) )
+                {
+                    if ( isset( $issueTypes[$matches[1]] ) )
+                    {
+                        $type = $issueTypes[$matches[1]];
+                    }
+                    else
+                    {
+                        $type = self::findIssueType( $matches[1] );
+                        $issueTypes[$matches[1]] = $type;
+                    }
+
+                    switch ( $type )
+                    {
+                        case 'enhancement':
+                            $enhancementsMatches[0][] = $matches[0];
+                            $enhancementsMatches[1][] = $matches[1];
+                            $enhancementsMatches[2][] = $matches[2];
+                            unset( $unmatchedEntries[$i] );
+                            break;
+                        case 'bugfix':
+                            $bugfixesMatches[0][] = $matches[0];
+                            $bugfixesMatches[1][] = $matches[1];
+                            $bugfixesMatches[2][] = $matches[2];
+                            unset( $unmatchedEntries[$i] );
+                            break;
+                    }
+                }
+            }
+
+            $unmatchedEntries = array_values( array_map(
                 function( $item )
                 {
                     return ( substr( $item, 0, 2 ) != "- " ? "- $item" : $item );
                 },
-                array_diff(
-                    $changelogArray,
-                    $bugfixesMatches[0],
-                    $enhancementsMatches[0],
-                    $pullreqsMatches[0] )
-            );
-
+                $unmatchedEntries
+            ) );
         }
         else
         {
@@ -563,6 +628,41 @@ class Builder
         );
     }
 
+    /**
+     * Determines an issue type by looking it up in the bug tracker
+     * @param $issue
+     * @param $opts
+     */
+    static function findIssueType( $issue, $opts=false )
+    {
+        // dirty workaround
+        if ( $opts == false )
+        {
+            $opts = self::$options[self::$projname];
+        }
+
+        $url = str_replace( '__ISSUE__', $issue, $opts['bugtracker']['url'] );
+        $page = file_get_contents( $url );
+        switch( $opts['bugtracker']['type'] )
+        {
+            case 'jira':
+                $knowntypes = array(
+                    '1' => 'bugfix',
+                    '4' => 'enhancement',
+                    '5' => 'enhancement', // task
+                    '7' => 'enhancement', // story
+                );
+                $data = json_decode( $page, true );
+                if ( isset( $data['fields']['issuetype']['id'] ) && isset( $knowntypes[$data['fields']['issuetype']['id']] ) )
+                {
+                    return $knowntypes[$data['fields']['issuetype']['id']];
+                }
+                break;
+            default:
+                pake_echo_error( "Can not determine issue type on bugtracker '{$opts['bugtracker']['type']}'" );
+        }
+        return 'unknown';
+    }
 
     /**
      * Creates a full url to connect to Jenkins by adding in hostname and auth tokens

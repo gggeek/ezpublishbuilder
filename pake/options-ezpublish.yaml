@@ -1,13 +1,13 @@
-### Config. file for the ezpublishbuilder script (rev 0.3.2 and later)
+### Config. file for the ezpublishbuilder tool (rev 0.3.2 and later)
 ###
-### Note that the script will load as well a 2nd config file (if it exists):
+### Note that the tool will load as well a 2nd config file (if it exists):
 ###   options-ezpublish-user.yaml
-### This allow you to separate sensistive info such as passwords or local info
+### This allow you to separate sensistive info such as passwords or local info (valid on your server only)
 ### such as non-standard paths to tools: the -user config file is not stored in
 ### git.
 
 ezpublish:
-    # Used in name of zips/tarballs, as well as in doc titles (appended to "ezpublish "eZ Publish" respectively)
+    # Used in name of zips/tarballs, as well as in doc titles (appended to "ezpublish" and "eZ Publish" respectively)
     # Can be f.e. 'Community Project' or just empty for EE version
     name: Community Project
 
@@ -57,14 +57,14 @@ dist:
 
 create:
     # Build products
-    mswpipackage: yes
+    mswpipackage: no
 
     doxygen_doc: no
     sami_doc: no
     # deprecated: phpdoc 2.0 superseded docblox
     docblox_doc: no
     # nb: phpdoc 2.0, NOT phpdoc 1
-    phpdoc_doc: yes
+    phpdoc_doc: no
 
 # Options for generation of documentation
 docs:
@@ -108,11 +108,12 @@ docs:
         4x_stack:
 
 tools:
-    # full pathname to doc generation tools (can be overridden by cli options)
+    # full pathname to doc generation tools
     doxygen: doxygen
-    sami: sami.php
-    docblox: docblox.php
-    # nb: phpdoc 2
+    docblox: docblox
+    # sami and phpdoc are installed via composer, so you should not need to change these
+    sami: sami
+    # nb: phpdoc 2 > 2.1
     phpdoc: phpdoc
     # in case these are not in your path or you want to use alternative versions
     php:
@@ -178,3 +179,8 @@ jenkins:
     # To get the api token, log in to jenkins, then go to your user profile page
     user:
     apitoken:
+
+bugtracker:
+    # use the __ISSUE__ token to replace issue nr.
+    url: https://jira.ez.no/rest/api/2/issue/__ISSUE__
+    type: jira

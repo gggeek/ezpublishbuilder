@@ -6,9 +6,9 @@
     "require": {
         "php": ">=5.3",
 
-        "indeyets/pake": ">=1.7.4"
-
-
+        "indeyets/pake": ">=1.7.4",
+        "sami/sami": ">=1.2",
+        "phpdocumentor/phpdocumentor": ">=2.1.0"
     },
     "autoload": {
         "classmap": [ "classes" ]

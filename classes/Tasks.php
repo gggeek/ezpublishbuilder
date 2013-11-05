@@ -8,7 +8,15 @@
 
 namespace eZPCPBuilder;
 
+use pakeException;
+use pakeFinder;
+use pakeGit;
 
+/**
+ * The class implementing all pake tasks so far
+ *
+ * @todo split it into different subclasses related to different tasks such as docs, ms-wpi, ci-server integration, ... ?
+ */
 class Tasks extends Builder
 {
 
@@ -32,7 +40,7 @@ class Tasks extends Builder
     }
 
     /**
-     * Shows the properties from current configuration files
+     * Shows the properties from current configuration files and command-line options
      *
      * @todo also dump name of config file(s) in use
      */
@@ -44,6 +52,8 @@ class Tasks extends Builder
 
     /**
      * Downloads eZP and other needed repos from their source repositories on github (needs to be run only once)
+     *
+     * Options: --skip-init, --skip-init-fetch
      * @todo add a dependency on a check-updates task that updates script itself?
      */
     public static function run_init( $task=null, $args=array(), $cliopts=array() )
@@ -925,9 +935,6 @@ class Tasks extends Builder
      *
      * Prerequisite task: dist-init
      * Options:
-     *   --doxygen=<...> path to doxygen executable (inc. executable name)
-     *   --docblox=<...> path to docblox install
-     *   --sami=<...> path to sami install
      *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
      *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
      *
@@ -943,9 +950,6 @@ class Tasks extends Builder
      *
      * Prerequisite task: dist-init
      * Options:
-     *   --doxygen=<...> path to doxygen executable (inc. executable name)
-     *   --docblox=<...> path to docblox install
-     *   --sami=<...> path to sami install
      *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
      *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
      */
@@ -959,9 +963,6 @@ class Tasks extends Builder
      *
      * Prerequisite task: dist-init
      * Options:
-     *   --doxygen=<...> path to doxygen executable (inc. executable name)
-     *   --docblox=<...> path to docblox install
-     *   --sami=<...> path to sami install
      *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
      *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
      */
@@ -973,6 +974,7 @@ class Tasks extends Builder
     /**
      * @todo allow via CLI to specify dir for tarballs
      * @todo simplify management of title for docs: just get it whole from configs...
+     * @todo split this monster in smaller pieces
      */
     public static function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
     {
@@ -1052,15 +1054,7 @@ class Tasks extends Builder
         {
             pake_echo( "Generating docs using Doxygen" );
 
-            $doxygen = @$cliopts['doxygen'];
-            if ( $doxygen == '' )
-            {
-                $doxygen = self::getTool( 'doxygen', $opts );
-            }
-            else
-            {
-                $doxygen = escapeshellarg( $doxygen );
-            }
+            $doxygen = self::getTool( 'doxygen', $opts );
 
             if ( $opts['docs']['doxygen']['dir'] != '' )
             {
@@ -1131,15 +1125,7 @@ class Tasks extends Builder
         {
             pake_echo( "Generating docs using Sami" );
 
-            $sami = @$cliopts['sami'];
-            if ( $sami == '' )
-            {
-                $sami = self::getTool( 'sami', $opts );
-            }
-            else
-            {
-                $sami = escapeshellarg( $sami );
-            }
+            $sami = self::getTool( 'sami', $opts, true );
 
             if ( $opts['docs']['sami']['dir'] != '' )
             {
@@ -1217,15 +1203,7 @@ class Tasks extends Builder
         {
             pake_echo( "Generating docs using Docblox" );
 
-            $docblox = @$cliopts['docblox'];
-            if ( $docblox == '' )
-            {
-                $docblox = self::getTool( 'docblox', $opts );
-            }
-            else
-            {
-                $docblox = escapeshellarg( $docblox );
-            }
+            $docblox = self::getTool( 'docblox', $opts );
 
             if ( $opts['docs']['docblox']['dir'] != '' )
             {
@@ -1284,15 +1262,7 @@ class Tasks extends Builder
         {
             pake_echo( "Generating docs using PhpDoc" );
 
-            $phpdoc = @$cliopts['phpdoc'];
-            if ( $phpdoc == '' )
-            {
-                $phpdoc = self::getTool( 'phpdoc', $opts );
-            }
-            else
-            {
-                $phpdoc = escapeshellarg( $phpdoc );
-            }
+            $phpdoc = self::getTool( 'phpdoc', $opts, true );
 
             if ( $opts['docs']['phpdoc']['dir'] != '' )
             {
@@ -1518,7 +1488,7 @@ class Tasks extends Builder
     /**
      * Updates the "eZ CP version history" document, currently hosted on pubsvn.ez.no.
      *
-     * Optional arguments: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
+     * Options: --public-keyfile=<...> --private-keyfile=<...> --user=<...> --private-keypasswd=<...>
      *
      * @todo add support for getting ssl certs options in config settings
      */

@@ -4,7 +4,7 @@ Introduction
 1. What is the eZ Publish Builder?
 ----------------------------------
 
-A set of php files and tools to help in the "build process" of eZ Publish Community Project
+A set of php scripts and other files to help in the "build process" of eZ Publish Community Project
 tarballs and deliverables
 - it is based on the Pake tool;
 - it is not a "complete" tool, as it relies on external repositories and build servers
@@ -28,16 +28,16 @@ or questions please contact info@ez.no
 ---------------
 
 - the php cli
-- Pake version 1.6.1 or later.
+- Pake version 1.7.4 or later.
   You can get it either from https://github.com/indeyets/pake/wiki
-  or as part of the extension itself, the first time you run the pakefile.php script
+  or as part of the setup process of this tool, running composer
   (latter option is recommended)
 - command line tools: git, tar, zip, patch
 - access to the eZ Publish build server (Jenkins) and eZ Publish and CI github repositories
   (with write access)
 - Doxygen 1.8.1.2 or later (for generating the API documentation)
-- Docblox 0.18.1 or later (for generating the API documentation)
-- Sami 1.0 or later (for generating the API documentation)
+- Phpdoc 2.1.0 or later (for generating the API documentation) - installed automatically via composer
+- Sami 1.0 or later (for generating the API documentation) - installed automatically via composer
 - access to the pubsvn.ez.no server via ssh/sftp (which generally means an ssh key)
 
 4. Installing
@@ -52,7 +52,13 @@ Directory structure
 Let's call ROOT_DIR the directory where you will be running the build script.::
 
 ROOT_DIR/
- |___pakefile.php   this is the script driving the build
+ |___classes/       php classes with the bulk of the business logic for this tool
+ |___doc/           more documentation, such as changelogs, todos and known bugs
+ |___vendor/        where composer will install required php libraries
+ |___INSTALL        installation instructions
+ |___LICENSE        license file
+ |___README         this file
+ |___composer.json  configuration file for composer
  |
  |___build
  |   |___source/    a copy of the eZP sources will be downloaded here during the build
@@ -61,19 +67,15 @@ ROOT_DIR/
  |
  |___dist/          tarballs produced by the build will be made available here
  |
- `___pake/
-     |___doc/       more documentation, such as changelogs, todos and known bugs
-     |___src/       a complete copy of the pake tool
-     |___README     this file
-     |___INSTALL    installation instructions
-     |___LICENSE    license file
-     |___doxyfile_master config. file used for documentation generation via doxygen
+ |___pake/
+ |   |___
+ |   `___
+ |
+ `___resources/
+     |___doxyfile_master config.   file used for documentation generation via doxygen
      |___doxygen_piwik_footer.html template file used as footer for documentation generation via doxygen
-     |___samicfg_master.php file used for documentation generation via sami
-     `___wpifiles   template files used to the generate the wpi package
-
-As you can see, we try to pollute as little as possible the ROOT_DIR: everything
-is neatly stowed away in the pake, build and dist subdirectories.
+     |___samicfg_master.php        file used for documentation generation via sami
+     `___wpifiles/                 template files used to the generate the wpi package
 
 FAQ
 ===
