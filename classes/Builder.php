@@ -18,7 +18,7 @@ class Builder
 {
     static $options = null;
     protected static $options_dir = 'pake';
-    const VERSION = '0.5';
+    const VERSION = '0.5.0-dev';
     const MIN_PAKE_VERSION = '1.7.4';
     static $projname = 'ezpublish';
 
@@ -181,7 +181,7 @@ class Builder
             }
         }
 
-        // one more hardcoded override
+        // hardcoded overrides
         if ( $projversion != '' )
         {
             $projversion = explode( '.', $projversion );

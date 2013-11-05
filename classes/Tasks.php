@@ -15,13 +15,20 @@ class Tasks extends Builder
     /**
      * Shows help message
      */
-    function run_default()
+    public static function run_default()
     {
         pake_echo ( "eZ Publish Community Project Builder ver." . self::VERSION . "\n" .
-            "Syntax: php pakefile.php [--\$general-options] \$task [--\$task-options].\nRun:\n" .
-            "  \"php pakefile.php --tasks\" to learn more about available tasks,\n" .
-            "  \"php pakefile.php --prereqs\" to list tasks dependencies, or\n" .
-            "  \"php pakefile.php help\" for more information." );
+            "Syntax: ezpublishbuilder  [--\$pake-options] \$task [--\$general-options] [--\$task-options].\n" .
+            "  General options:\n" .
+            "    --config-dir=\$dir             to be used instead of ./pake\n" .
+            "    --config-file=\$file           to be used instead of ./pake/options-\$ext.yaml\n" .
+            "    --user-config-file=\$file      to be used instead of ./pake/options-user.yaml\n" .
+            "    --option.\$option.\$name=\$value to override any configuration setting\n" .
+
+            "  Run: \"ezpublishbuilder --tasks\" to list available tasks,\n" .
+            "       \"ezpublishbuilder -P\" to list tasks dependencies,\n" .
+            "       \"ezpublishbuilder help \$task\" to learn more on one specific task, or\n" .
+            "       \"ezpublishbuilder help\" to learn about the options for pake." );
     }
 
     /**
@@ -29,7 +36,7 @@ class Tasks extends Builder
      *
      * @todo also dump name of config file(s) in use
      */
-    function run_show_properties( $task=null, $args=array(), $cliopts=array() )
+    public static function run_show_properties( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
         pake_echo ( print_r( $opts, true ) );
@@ -39,7 +46,7 @@ class Tasks extends Builder
      * Downloads eZP and other needed repos from their source repositories on github (needs to be run only once)
      * @todo add a dependency on a check-updates task that updates script itself?
      */
-    function run_init( $task=null, $args=array(), $cliopts=array() )
+    public static function run_init( $task=null, $args=array(), $cliopts=array() )
     {
         $skip_init = @$cliopts['skip-init'];
         $skip_init_fetch = @$cliopts['skip-init-fetch'] || $skip_init;
@@ -94,7 +101,7 @@ class Tasks extends Builder
     /**
      * Downloads the CI repo sources from github (needs to be run only once)
      */
-    function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
+    public static function run_init_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -146,14 +153,14 @@ class Tasks extends Builder
      * We rely on the pake dependency system to do the real stuff
      * (run pake -P to see tasks included in this one)
      */
-    function run_build( $task=null, $args=array(), $cliopts=array() )
+    public static function run_build( $task=null, $args=array(), $cliopts=array() )
     {
     }
 
     /**
      * Updates local eZP sources (git pull from github)
      */
-    function run_update_source( $task=null, $args=array(), $cliopts=array() )
+    public static function run_update_source( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -223,7 +230,7 @@ class Tasks extends Builder
      * The generated file is placed in the correct folder within doc/changelogs.
      * It should be reviewed/edited by hand, then committed with the task "update-ci-repo".
      */
-    function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_changelog( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -298,7 +305,7 @@ class Tasks extends Builder
 
     }
 
-    function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
+    public static function run_wait_for_changelog( $task=null, $args=array(), $cliopts=array() )
     {
         $skip_pause = @$cliopts['skip-changelog-pause'];
         if ( !$skip_pause )
@@ -314,7 +321,7 @@ class Tasks extends Builder
     /**
      * Generate changelog files that can be copied and pasted into ezxml rich text; NOT FINISHED YET
      */
-    function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_html_changelog( $task=null, $args=array(), $cliopts=array() )
     {
         pake_echo( "WARNING - experimental" );
 
@@ -415,7 +422,7 @@ class Tasks extends Builder
     /**
      * Generate changelog files that can be copied and pasted into ezxml rich text; NOT FINISHED YET
      */
-    function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_html_credits( $task=null, $args=array(), $cliopts=array() )
     {
         pake_echo( "WARNING - experimental" );
 
@@ -476,7 +483,7 @@ class Tasks extends Builder
     /**
      * Updates the local copy of the CI repo (pull from github)
      */
-    function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() )
+    public static function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() )
     {
         // needed on windows - unless a recent git version is used (1.7.9 is ok)
         // and a recent pakeGit class is used ( > pake 1.6.3)
@@ -549,7 +556,7 @@ class Tasks extends Builder
      * It holds, amongs other things, patch files that are applied in order to build the
      * CP version instead of the Enterprise one
      */
-    function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
+    public static function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
         // needed on windows - unless a recent git version is used (1.7.9 is ok)
         // and a recent pakeGit class is used ( > pake 1.6.3)
@@ -744,7 +751,7 @@ class Tasks extends Builder
         pake_sh( self::getCdCmd( $cipath ) . " && $git push $originp {$opts['git']['ci-repo']['branch']}:{$opts['git']['ci-repo']['branch']}" );
     }
 
-    function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
+    public static function run_wait_for_continue( $task=null, $args=array(), $cliopts=array() )
     {
         $skip_pause = @$cliopts['skip-before-jenkins-pause'];
         if ( !$skip_pause )
@@ -760,7 +767,7 @@ class Tasks extends Builder
     /**
      * Executes the build project on Jenkins (ezp4)
      */
-    function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
+    public static function run_run_jenkins_build4( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -823,7 +830,7 @@ class Tasks extends Builder
      * Executes the build project on Jenkins (ezp5)
      * @todo code is duplicate of run_run_jenkins_build4, reunite
      */
-    function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
+    public static function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -885,7 +892,7 @@ class Tasks extends Builder
     /**
      * Pushes to github repositories a tag with the current version name. TO BE TESTED
      */
-    function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
+    public static function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -906,7 +913,7 @@ class Tasks extends Builder
     /**
      * Pushes to Jenkins job builds a tag with the current version name. TO BE DONE
      */
-    function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
+    public static function run_tag_jenkins_builds( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -926,7 +933,7 @@ class Tasks extends Builder
      *
      * @todo warn user and abort if target directories for doc are not empty
      */
-    function run_generate_apidocs_LS( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_apidocs_LS( $task=null, $args=array(), $cliopts=array() )
     {
         run_generate_apidocs_generic( 'LS', $task, $args, $cliopts );
     }
@@ -942,7 +949,7 @@ class Tasks extends Builder
      *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
      *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
      */
-    function run_generate_apidocs_NS( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_apidocs_NS( $task=null, $args=array(), $cliopts=array() )
     {
         run_generate_apidocs_generic( 'NS', $task, $args, $cliopts );
     }
@@ -958,7 +965,7 @@ class Tasks extends Builder
      *   --sourcedir=<...> dir with eZ sources, defaults to build/release/ezpublish (from config. file)
      *   --docsdir=<...> dir where docs will be saved, default to build/apidocs/ezpublish/<tool>/ (from config. file)
      */
-    function run_generate_apidocs_4X( $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_apidocs_4X( $task=null, $args=array(), $cliopts=array() )
     {
         run_generate_apidocs_generic( '4X', $task, $args, $cliopts );
     }
@@ -967,7 +974,7 @@ class Tasks extends Builder
      * @todo allow via CLI to specify dir for tarballs
      * @todo simplify management of title for docs: just get it whole from configs...
      */
-    function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
+    public static function run_generate_apidocs_generic( $stack, $task=null, $args=array(), $cliopts=array() )
     {
 
         $opts = self::getOpts( $args, $cliopts );
@@ -1356,14 +1363,14 @@ class Tasks extends Builder
      * We rely on the pake dependency system to do the real stuff
      * (run pake -P to see tasks included in this one)
      */
-    function run_dist( $task=null, $args=array(), $cliopts=array() )
+    public static function run_dist( $task=null, $args=array(), $cliopts=array() )
     {
     }
 
     /**
      * Downloads the build tarballs from Jenkins for further repackaging; options: --build=<buildnr>
      */
-    function run_dist_init( $task=null, $args=array(), $cliopts=array() )
+    public static function run_dist_init( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -1430,7 +1437,7 @@ class Tasks extends Builder
     /**
      * Creates the MS WPI
      */
-    function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
+    public static function run_dist_wpi( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
         if ( $opts['create']['mswpipackage'] )
@@ -1495,7 +1502,7 @@ class Tasks extends Builder
      * We rely on the pake dependency system to do the real stuff
      * (run pake -P to see tasks included in this one)
      */
-    function run_release( $task=null, $args=array(), $cliopts=array() )
+    public static function run_release( $task=null, $args=array(), $cliopts=array() )
     {
 
     }
@@ -1503,7 +1510,7 @@ class Tasks extends Builder
     /**
      * Uploads dist material to share.ez.no and creates all pages: changelogs/releasenotes/credits/.... TO BE DONE
      */
-    function run_update_share( $task=null, $args=array(), $cliopts=array() )
+    public static function run_update_share( $task=null, $args=array(), $cliopts=array() )
     {
         throw new pakeException( "Task to be implemented" );
     }
@@ -1515,7 +1522,7 @@ class Tasks extends Builder
      *
      * @todo add support for getting ssl certs options in config settings
      */
-    function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
+    public static function run_update_version_history( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
@@ -1578,7 +1585,7 @@ class Tasks extends Builder
     /**
      * Uploads php-api docs of the build to pubsvn.ez.no. TO BE CODED
      */
-    function run_upload_apidocs( $task=null, $args=array(), $cliopts=array() )
+    public static function run_upload_apidocs( $task=null, $args=array(), $cliopts=array() )
     {
         throw new pakeException( "Task to be implemented" );
     }
@@ -1589,14 +1596,14 @@ class Tasks extends Builder
      * We rely on the pake dependency system to do the real stuff
      * (run pake -P to see tasks included in this one)
      */
-    function run_all( $task=null, $args=array(), $cliopts=array() )
+    public static function run_all( $task=null, $args=array(), $cliopts=array() )
     {
     }
 
     /**
      * Removes the build/ directory
      */
-    function run_clean( $task=null, $args=array(), $cliopts=array() )
+    public static function run_clean( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
         pake_remove_dir( $opts['build']['dir'] );
@@ -1605,7 +1612,7 @@ class Tasks extends Builder
     /**
      * Removes the dist/ directory (usually includes the apidocs directory)
      */
-    function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
+    public static function run_dist_clean( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
         pake_remove_dir( $opts['dist']['dir'] );
@@ -1614,7 +1621,7 @@ class Tasks extends Builder
     /**
      * Removes the directory where the local copy of the CI repo is kept
      */
-    function run_clean_ci_repo( $task=null, $args=array(), $cliopts=array() )
+    public static function run_clean_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
         if ( @$opts['ci-repo']['local-path'] == '' )
@@ -1630,7 +1637,7 @@ class Tasks extends Builder
      * We rely on the pake dependency system to do the real stuff
      * (run pake -P to see tasks included in this one)
      */
-    function run_clean_all( $task=null, $args=array(), $cliopts=array() )
+    public static function run_clean_all( $task=null, $args=array(), $cliopts=array() )
     {
     }
 
