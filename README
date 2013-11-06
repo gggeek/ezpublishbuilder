@@ -30,8 +30,7 @@ or questions please contact info@ez.no
 - the php cli
 - Pake version 1.7.4 or later.
   You can get it either from https://github.com/indeyets/pake/wiki
-  or as part of the setup process of this tool, running composer
-  (latter option is recommended)
+  or as part of the setup process of this tool, running composer (latter option is recommended)
 - command line tools: git, tar, zip, patch
 - access to the eZ Publish build server (Jenkins) and eZ Publish and CI github repositories
   (with write access)
@@ -49,7 +48,7 @@ Read the INSTALL file to get started and for usage instructions
 Directory structure
 ===================
 
-Let's call ROOT_DIR the directory where you will be running the build script.::
+Let's call ROOT_DIR the directory where you will be running the build script. ::
 
 ROOT_DIR/
  |___classes/       php classes with the bulk of the business logic for this tool

@@ -299,7 +299,7 @@ class Tasks extends Builder
                      'unmatchedEntries' => 'Miscellaneous'
                  ) as $type => $name )
         {
-            $out .= "$name\n" . str_pad( '', strlen( $name ), '=' ) . "\n";
+            $out .= "$name\n" . str_pad( '', strlen( $name ), '=' ) . "\n\n";
             foreach( array( 'community', 'legacy', 'kernel' )  as $repo )
             {
                 $out .= $ezpublishHeader[$repo];

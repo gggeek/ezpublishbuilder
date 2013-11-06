@@ -548,24 +548,33 @@ class Builder
             $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( self::getCdCmd( $rootpath ) . " && $git log --pretty=%s " . escapeshellarg( $previousrev ) . "..HEAD" ) );
 
             $changelogArray = array_map( 'trim', $changelogArray );
-            $changelogText = implode( "\n", $changelogArray );
+            foreach( $changelogArray as $i => $line )
+            {
+                if ( $line == '' )
+                {
+                    unset( $changelogArray[$i] );
+                }
+            }
 
+            $changelogText = implode( "\n", $changelogArray );
             if ( $changelogText == '' )
             {
                 pake_echo( "Git log returns an empty string - generating an empty changelog file. Please check if there is any problem with $rootpath" );
             }
 
-            // extract and categorize issues using known patterns
-            //preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|for ticket)? #0?([0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
-            preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|issue|for ticket)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
-            preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement|issue)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );
+
+            // Was: "extract and categorize issues using known patterns"
+            // This proved not to be reliable!
+            // We categorize all issues by looking at their type in the bug tracker instead
+            /*preg_match_all( "/^[- ]?Fix(?:ed|ing)?(?: bug|issue|for ticket)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $bugfixesMatches, PREG_PATTERN_ORDER );
+            preg_match_all( "/^[- ]?Implement(?:ed)?(?: enhancement|issue)? (EZP-[0-9]+):? (.*)$/mi", $changelogText, $enhancementsMatches, PREG_PATTERN_ORDER );*/
             preg_match_all( "!^Merge pull request #0?([0-9]+):? ([^/]*)(?:/.*)?$!mi", $changelogText, $pullreqsMatches, PREG_PATTERN_ORDER );
 
-            // remove all bugfixes & enhancements from the changelog to get "unmatched" items
+            // remove merge commits to get "unmatched" items
             $unmatchedEntries = array_diff(
                     $changelogArray,
-                    $bugfixesMatches[0],
-                    $enhancementsMatches[0],
+                    /*$bugfixesMatches[0],
+                    $enhancementsMatches[0],*/
                     $pullreqsMatches[0] );
 
             /// if we identify an issue number, look up its type in jira to determine its type
