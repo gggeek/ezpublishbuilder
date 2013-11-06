@@ -1,0 +1,48 @@
+Things which fell off the roadmap as per course of history (arrival o9f composer, windows support being officially dropped, etc)
+
+# global
+
+. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step XX in the instructions)
+
+
+# Windows Web Application Gallery / Web Platform Installer package
+
+nb: doc begins at http://learn.iis.net/page.aspx/619/windows-web-application-gallery/
+
+. try to remove choice of pg from installer, while leaving mysql/mysqli
+  (or shall we just set mysqli as std ?)
+
+. q: does web installer does not test mysql credentials if 'use existing db' option chosen?
+  a: most likely yes, but at a later step than entering them
+  => shall we leave db config. setp in setup wizard visible?
+
+. q: when does web installer ask for db amin credentials?
+  a: only when user chooses 'create a new db'
+
+. hide wizard step about url access method? (defaulting to 'url')
+
+. pake tasks:
+  - get sources
+  - build
+
+. test if feed file can have many versions of the same product (is it useful at all?)
+
+. decide directory for downloadable files on share.ez.no
+
+. check if packages dir has to be set to writeable
+
+
+# pear package
+
+. all pake tasks:
+  - get sources
+  - build
+  - generate package file
+  - update version nr in install dir in package file (?)
+  - create zip
+
+
+# misc
+
+. ez pull reqs:
+  - add web.config-RECOMMENDED (resync with latest .htaccess): #xxx

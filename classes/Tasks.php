@@ -495,10 +495,6 @@ class Tasks extends Builder
      */
     public static function run_update_ci_repo_source( $task=null, $args=array(), $cliopts=array() )
     {
-        // needed on windows - unless a recent git version is used (1.7.9 is ok)
-        // and a recent pakeGit class is used ( > pake 1.6.3)
-        // pakeGit::$needs_work_tree_workaround = true;
-
         $opts = self::getOpts( $args, $cliopts );
 
         $skip_update = @$cliopts['skip-update-ci-repo-source'];
@@ -568,10 +564,6 @@ class Tasks extends Builder
      */
     public static function run_update_ci_repo( $task=null, $args=array(), $cliopts=array() )
     {
-        // needed on windows - unless a recent git version is used (1.7.9 is ok)
-        // and a recent pakeGit class is used ( > pake 1.6.3)
-        // pakeGit::$needs_work_tree_workaround = true;
-
         $opts = self::getOpts( $args, $cliopts );
         $rootpath = self::getSourceDir( $opts, 'legacy' );
 
@@ -583,7 +575,7 @@ class Tasks extends Builder
         // 1. update ci repo - moved to a separate task
 
         // dirty, dirty hack
-        $originp = $GLOBALS['originp'];
+        $originp = @$GLOBALS['originp'];
 
         $repo = new pakeGit( $cipath );
 
@@ -600,7 +592,7 @@ class Tasks extends Builder
         // 1b. check that there is no spurious stuff in changelog dir, or step 3 later will create bad patch files.
         //     we do this here to avoid adding ANY file to local copy of CI git repo and abort asap
         $changelogdir = 'doc/changelogs/Community_Project-' . $opts['version']['major'];
-        $files = pakeFinder::type( 'file' )->maxdepth( 0 )->in( self::getSourceDir( $opts, 'legacy' ) . '/' . $changelogdir );
+        $files = pakeFinder::type( 'file' )->maxdepth( 0 )->relative()->in( self::getSourceDir( $opts, 'legacy' ) . '/' . $changelogdir );
         if ( count( $files ) != 1 )
         {
             throw new pakeException( "More than one changelog file (or none) found in directory $changelogdir, can not generate patch file for CI repo" );
@@ -608,11 +600,11 @@ class Tasks extends Builder
 
         // 2. update 0002_2011_11_patch_fix_version.diff file
 
-        $files1 = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
-        $files2 = pakeFinder::type( 'file' )->name( '0003_2011_11_patch_fix_package_repository.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+        $files1 = pakeFinder::type( 'file' )->name( '0002_2011_11_patch_fix_version.diff' )->maxdepth( 0 )->relative()->in( $cipath . '/patches' );
+        $files2 = pakeFinder::type( 'file' )->name( '0003_2011_11_patch_fix_package_repository.diff' )->maxdepth( 0 )->relative()->in( $cipath . '/patches' );
         /// @todo what if those files are gone?
-        $patchfile1 = $files1[0];
-        $patchfile2 = $files2[0];
+        $patchfile1 = $cipath . '/patches/' . $files1[0];
+        $patchfile2 = $cipath . '/patches/' . $files2[0];
 
         // if a new major version has been released, the '0002_2011_11_patch_fix_version.diff' patch will not apply,
         // and the '0003_2011_11_patch_fix_package_repository.diff' file will have to be altered as well
@@ -737,11 +729,37 @@ class Tasks extends Builder
         }
         $seqnr = str_pad( (  $max + 1 ), 4, '0', STR_PAD_LEFT );
         $newdifffile = $seqnr .'_' . str_replace( '.', '_', $opts['version']['alias'] ) . '_patch_fix_changelog.diff';
+
+        // what if there is already a patch file in the ci repo which creates the changelog we are adding a patch file for?
+        if ( preg_match_all( '/^\+\+\+ (.*)$/m', file_get_contents( $difffile ), $matches ) )
+        {
+            $added = $matches[1];
+            //echo "adding: "; var_dump( $added );
+            $patchfiles = pakeFinder::type( 'file' )->name( '*.diff' )->maxdepth( 0 )->in( $cipath . '/patches' );
+            foreach( $patchfiles as $patchfile )
+            {
+                if ( preg_match_all( '/^\+\+\+ (.*)$/m', file_get_contents( $patchfile ), $matches ) )
+                {
+                    //echo "already added: "; var_dump( $matches[1] );
+                    if ( array_intersect( $added, $matches[1] ) )
+                    {
+                        $cont = pake_select_input( "The patch file\n  $patchfile\nseems to already create the same files wew want to create using a new patch file:\n  $newdifffile\n".
+                            "This is a sign of a probable error somewhere. Press '1' to continue the build task anyway. Otherwise press '2' to exit.",
+                            array( 'Continue', 'Stop' ), 1 );
+                        if ( $cont != 'Y' )
+                        {
+                            exit;
+                        }
+                    }
+                }
+            }
+        }
+
         pake_copy( $difffile, $cipath . '/patches/' . $newdifffile, array( 'override' => true ) );
         $repo->add( array( $localcipath . 'patches/' . $newdifffile ) );
 
         // 5. update ezpublish-gpl.properties
-        $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->in( $cipath . '/properties' );
+        $files = pakeFinder::type( 'file' )->name( 'ezpublish-gpl.properties' )->maxdepth( 0 )->relative()->in( $cipath . '/properties' );
         pake_replace_regexp( $files, $cipath . '/properties', array(
                 '/^ezp\.cp\.version\.major += +.+$/m' => "ezp.cp.version.major = {$opts['version']['major']}",
                 '/^ezp\.cp\.version\.minor += +.+$/m' => "ezp.cp.version.minor = {$opts['version']['minor']}"

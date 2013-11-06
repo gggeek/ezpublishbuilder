@@ -43,6 +43,12 @@ if ( !( isset( $GLOBALS['internal_pake'] ) && $GLOBALS['internal_pake'] ) )
     pake_require_version( eZPCPBuilder\Builder::MIN_PAKE_VERSION );
 }
 
+// this should not be strictly needed, but it does not hurt
+if ( strtoupper( substr( PHP_OS, 0, 3) ) === 'WIN' )
+{
+    pakeGit::$needs_work_tree_workaround = true;
+}
+
 // *** declaration of the pake tasks ***
 
 // NB: up to pake 1.99.1 this will not work

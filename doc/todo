@@ -10,11 +10,11 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
   - complete changelog generation in ezoe xml format (see below for details)
   - the WPI generation has to be reviewed
 
-. init tasks: set up user info in git for later allowing pushing to upstream repos
+. simplify (if possible) the process of generating patches for the ci repo
 
 . finish task: generate html version of changelog from txt version (test copy+paste it into online editor on share.ez.no)
 
-. new task: upload wpi tarball to http://share.ez.no/ez-on-mswebplatform/ after building it (step XX in the instructions)
+. init tasks: set up user info in git for later allowing pushing to upstream repos
 
 . new task: tag the builds in jenkins with correct "keep forever" and "description" data (step YY in the instructions)
 
@@ -22,14 +22,14 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
   (ideally, sql upgrade scripts should be put in the diff files on ci.ez.no,
   so that they are bundled with the release)
 
-. new task: create on share.ez.no release notes, changelog, upgrade instructions (using ezcontenstaging rest api)
+. new task: create on share.ez.no release notes, changelog, upgrade instructions (using ezcontenstaging rest api?)
 
 . decide std name of install dir (??? as in "subdir of web root directory"?)
 
 . all pake tasks: download, build, ...
   - replace version nr. in install dir ? (nb: not for ms web app package) (???)
 
-. new task: integrate with grunt.js
+. new task: integrate with grunt.js (or node.js - but why?)
 
 
 # update-ci-repo task
@@ -54,53 +54,8 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 . if repos already exist locally, run an update instead of trying full download
 
-
-# Windows Web Application Gallery / Web Platform Installer package
-
-nb: doc begins at http://learn.iis.net/page.aspx/619/windows-web-application-gallery/
-
-. try to remove choice of pg from installer, while leaving mysql/mysqli
-  (or shall we just set mysqli as std ?)
-
-. q: does web installer does not test mysql credentials if 'use existing db' option chosen?
-  a: most likely yes, but at a later step than entering them
-  => shall we leave db config. setp in setup wizard visible?
-
-. q: when does web installer ask for db amin credentials?
-  a: only when user chooses 'create a new db'
-
-. hide wizard step about url access method? (defaulting to 'url')
-
-. pake tasks:
-  - get sources
-  - build
-
-. test if feed file can have many versions of the same product (is it useful at all?)
-
-. decide directory for downloadable files on share.ez.no
-
-. check if packages dir has to be set to writeable
-
-
-# pear package
-
-. all pake tasks:
-  - get sources
-  - build
-  - generate package file
-  - update version nr in install dir in package file (?)
-  - create zip
-
-
 # misc
 
-. iis rewrite rules for static cache:
-http://learn.iis.net/page.aspx/761/provide-url-rewriting-functionality/
-
-. mail iis forums: how to test for presence of rewrite module? also how to test if mysqli is active? and is there a way to force install of mysql connector for .net?
-  OK (except for mysqli extension...)
-
 . ez pull reqs:
-  - add web.config-RECOMMENDED (resync with latest .htaccess): #xxx
-  - add commented rule for static cache
-  - add commented rule for cluster
+  - add commented rule for static cache in .htaccess
+  - add commented rule for cluster in .htaccess
