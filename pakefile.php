@@ -105,10 +105,10 @@ pake_task( 'eZPCPBuilder\Tasks::generate-apidocs-4X' );
 
 pake_task( 'eZPCPBuilder\Tasks::dist-init' );
 
-pake_task( 'eZPCPBuilder\Tasks::dist-wpi' );
+pake_task( 'eZPCPBuilder\MSWPITasks::dist-wpi' );
 
 pake_task( 'eZPCPBuilder\Tasks::dist',
-    'dist-init', 'dist-wpi', 'generate-apidocs-LS', 'generate-apidocs-NS' );
+    'dist-init', 'generate-apidocs-LS', 'generate-apidocs-NS' );
 
 pake_task( 'eZPCPBuilder\Tasks::release',
     'generate-html-changelog', 'generate-html-credits', 'update-share', 'update-version-history', 'upload-apidocs' );

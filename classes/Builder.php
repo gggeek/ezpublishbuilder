@@ -10,6 +10,7 @@ namespace eZPCPBuilder;
 
 use pakeException;
 use pakeYaml;
+use pakeHttp;
 
 /**
  * Class implementing the core logic for our pake tasks
