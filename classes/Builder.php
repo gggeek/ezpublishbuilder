@@ -336,6 +336,7 @@ class Builder
         {
             if ( $composerBinary )
             {
+                // oh my! some tools like pake put a .bat and a shell file in vendor, some others a .php (on linux) and a .bat...
                 $vendorDir = self::getVendorDir();
                 if ( file_exists( $vendorDir . "/bin/$tool" ) )
                 {
@@ -344,6 +345,11 @@ class Builder
                     {
                         $file .= '.bat';
                     }
+                    return escapeshellarg( $file );
+                }
+                if ( file_exists( $vendorDir . "/bin/$tool.php" ) )
+                {
+                    $file = realpath( $vendorDir . "/bin/$tool.php" );
                     return escapeshellarg( $file );
                 }
             }

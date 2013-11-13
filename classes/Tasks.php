@@ -1177,7 +1177,7 @@ class Tasks extends Builder
                 'EXCLUDE' => $excludes,
                 'OUTPUT' => $outdir . '/html',
                 'CACHEDIR' => $opts['build']['dir'] . '/sami_cache',
-                'BASEDIR' => __DIR__
+                'BASEDIR' => dirname( __DIR__ )
             ) );
 
             //clear sami cache, as sometimes it prevents docs from generating correctly
