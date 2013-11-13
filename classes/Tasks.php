@@ -960,7 +960,7 @@ class Tasks extends Builder
      */
     public static function run_generate_apidocs_LS( $task=null, $args=array(), $cliopts=array() )
     {
-        run_generate_apidocs_generic( 'LS', $task, $args, $cliopts );
+        self::run_generate_apidocs_generic( 'LS', $task, $args, $cliopts );
     }
 
     /**
@@ -973,7 +973,7 @@ class Tasks extends Builder
      */
     public static function run_generate_apidocs_NS( $task=null, $args=array(), $cliopts=array() )
     {
-        run_generate_apidocs_generic( 'NS', $task, $args, $cliopts );
+        self::run_generate_apidocs_generic( 'NS', $task, $args, $cliopts );
     }
 
     /**
@@ -986,7 +986,7 @@ class Tasks extends Builder
      */
     public static function run_generate_apidocs_4X( $task=null, $args=array(), $cliopts=array() )
     {
-        run_generate_apidocs_generic( '4X', $task, $args, $cliopts );
+        self::run_generate_apidocs_generic( '4X', $task, $args, $cliopts );
     }
 
     /**
