@@ -3,6 +3,9 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # global
 
+. fix generation of docs w. phpdoc: remove cache folders after run
+  (see also https://github.com/phpDocumentor/phpDocumentor2/issues/890)
+
 . finish integration with v5:
   - automate checking for status of v5ee and v4 jobs before starting the "merge" job
   - rewrite the shell part of the v5-community task in php
