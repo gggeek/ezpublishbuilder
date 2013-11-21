@@ -14,7 +14,7 @@ ezpublish:
 version:
     # the version number set here can be overridden via command line arguments
     major: 2013
-    minor: 10
+    minor: 11
     release: 0
 
     # defaults to $major.$minor
@@ -60,7 +60,7 @@ create:
     mswpipackage: no
 
     doxygen_doc: no
-    sami_doc: no
+    sami_doc: yes
     # deprecated: phpdoc 2.0 superseded docblox
     docblox_doc: no
     # nb: phpdoc 2.0, NOT phpdoc 1
@@ -111,16 +111,18 @@ tools:
     # full pathname to doc generation tools
     doxygen: doxygen
     docblox: docblox
-    # sami and phpdoc are installed via composer, so you should not need to change these
-    sami: sami
+    # sami and phpdoc are installed via composer, so you should not need to set these
+    # on windows, set them to vendor\sami\sami\sami.php, vendor\phpdocumentor\phpdocumentor\bin\phpdoc.php
+    sami:
     # nb: phpdoc 2 > 2.1
-    phpdoc: phpdoc
+    phpdoc:
     # in case these are not in your path or you want to use alternative versions
     php:
     tar:
     git:
     patch:
     zip:
+    composer.phar:
 
 # Source repos (only git usable at the moment - see ezextensionbuilder for other options)
 git:
@@ -170,10 +172,11 @@ git:
 jenkins:
     url: https://ci.ez.no
     jobs:
+        # NB: these jobs correspond only roughly to the 3 repos involved
         legacy: ezpublish-full-community
-        # @todo find the exact jobs corresponding to the 3 repos involved
+        kernel: ezpublish5-community
         community: ezpublish5-full-community
-        #kernel:
+
     # The following is used as auth token if access to Jenkins is protected
     # NB: as of 1/2013, this is enabled on ci.ez.no.
     # To get the api token, log in to jenkins, then go to your user profile page

@@ -1,0 +1,14 @@
+Changes for version 0.6 - released 2013/11/xx
+
+*General:
+
+. The "update-sources" task now echoes current git revision for all repos
+
+. More readable output for task "generate-changelog"
+
+. added 2 new tasks: check-jenkins-build5pre and run-jenkins-build5pre.
+  These correspond to step 6 (currently) in the instruction manual
+
+*Bugfixes:
+
+. Generation of html credits was broken since 0.5.0

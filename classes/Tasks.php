@@ -182,7 +182,7 @@ class Tasks extends Builder
 
         $git = self::getTool( 'git', $opts );
 
-        foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
+        foreach( array( 'legacy', 'community', 'kernel' ) as $repo )
         {
             pake_echo( "Updating source code from eZ Publish $repo GIT repository" );
 
@@ -231,6 +231,8 @@ class Tasks extends Builder
 
             /// remember to fetch all tags as well
             pake_sh( self::getCdCmd( $rootpath ) . " && $git fetch --tags" );
+
+            pake_echo ( 'Last commit: ' . pake_sh( self::getCdCmd( $rootpath ) . " && git log -1 --format=\"%H\"" ) );
         }
     }
 
@@ -254,14 +256,14 @@ class Tasks extends Builder
             {
                 $previousrev = $opts['version']['previous'][$repo]['git-revision'];
 
-                pake_echo ( "Git revision of previous release for repo $repo taken from config file: $previousrev" );
+                pake_echo ( "\nGit revision of previous release for repo $repo taken from config file: $previousrev" );
             }
             else
             {
                 $prevname = self::previousVersionName( $opts );
                 //if ( $opts['jenkins']['jobs'][$repo] )
                 //{
-                pake_echo ( "Getting git revision of previous release from GIT or Jenkins for repo $repo" );
+                pake_echo ( "\nGetting git revision of previous release from GIT or Jenkins for repo $repo" );
 
                 $previousrev = self::getPreviousRevision( $prevname, $repo, $opts );
                 if ( $previousrev == "" )
@@ -277,11 +279,11 @@ class Tasks extends Builder
                 pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
             }
 
-            pake_echo ( "Extracting changelog entries from git log" );
+            pake_echo ( "\nExtracting changelog entries from git log" );
             $changelogEntries[$repo] = self::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
         }
 
-        pake_echo ( "Generating changelog in txt format" );
+        pake_echo ( "\nGenerating changelog in txt format" );
         foreach( array( 'legacy', 'kernel', 'community' ) as $repo )
         {
 
@@ -312,6 +314,8 @@ class Tasks extends Builder
         $filename = self::changelogFilename( $opts );
         pake_mkdirs( $changelogdir );
         pake_write_file( $changelogdir . '/' . $filename , $out, true );
+
+        pake_echo( "\nNow go and edit file " . $changelogdir . '/' . $filename );
 
     }
 
@@ -467,7 +471,7 @@ class Tasks extends Builder
                     switch( $mode )
                     {
                         case 'github':
-                            if ( preg_match( '#from (.+)/#', $line, $matches ) )
+                            if ( preg_match( '#from (.+)#', $line, $matches ) )
                             {
                                 /// @todo add link
                                 $uniqueContributors[urlencode( $matches[1] )] = htmlspecialchars( $matches[1] );
@@ -478,7 +482,6 @@ class Tasks extends Builder
                     }
             }
         }
-
         foreach ( $uniqueContributors as $key => $contributor )
         {
             $htmlfile[] = '<li><a target="_blank" href="https://github.com/' . $key . '/">' . $contributor . '</a></li>';
@@ -635,8 +638,8 @@ class Tasks extends Builder
             $oldNextVersionMinor = $m2[1];
             $currentVersion = $m3[1];
             // give some information to user
-            pake_echo( "Packages available during setup wizard execution for this CP build will be the ones from eZP $currentVersion" );
-            pake_echo( "The next build of eZ Publish EE is expected to be $oldNextVersionMajor.$oldNextVersionMinor" );
+            pake_echo( "\nPackages available during setup wizard execution for this CP build will be the ones from eZP $currentVersion" );
+            pake_echo( "The next build of eZ Publish EE is expected to be $oldNextVersionMajor.$oldNextVersionMinor\n" );
 
             // last, we try automated fixing or abort
             if ( $patcherror )
@@ -799,122 +802,73 @@ class Tasks extends Builder
     {
         $opts = self::getOpts( $args, $cliopts );
 
-        /// Use jenkins Remote Access Api
-        /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
-        /// @see https://wiki.jenkins-ci.org/display/JENKINS/Authenticating+scripted+clients
+        self::jenkinsBuild( $opts['jenkins']['jobs']['legacy'], $opts );
+    }
 
-        // trigger build
-        /// @todo Improve this: jenkins gives us an http 302 => html page,
-        ///       so far I have found no way to get back a json-encoded result
-        $out = self::jenkinsCall( 'job/' . $opts['jenkins']['jobs']['legacy'] . '/build?delay=0sec', $opts );
-        // "scrape" the number of the currently executing build, and hope it is the one we triggered.
-        // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
-        $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
-        if ( !$ok )
+    /**
+     * Checks if the build of the 'ezpublish5-community' job on jenkins is fine
+     */
+    public static function run_check_jenkins_build5pre( $task=null, $args=array(), $cliopts=array() )
+    {
+        $opts = self::getOpts( $args, $cliopts );
+
+        pake_echo( "Checking status of jenkins job '{$opts['jenkins']['jobs']['kernel']}'" );
+        $buildurl = 'job/' . $opts['jenkins']['jobs']['kernel'] . '/api/json';
+        $out = self::jenkinsCall( $buildurl, $opts ); // true
+        if ( !is_array( $out ) || !array_key_exists( 'builds', $out ) )
         {
-            // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
-            $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['jobs']['legacy'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
-            if ( !$ok )
-            {
-                throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
-            }
+            throw new pakeException( "Error in retrieving job status" );
         }
-        $buildnr = $matches[1];
-
-        /*
-           $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['jobs']['legacy'] . '/api/json';
-           $out = json_decode( pake_read_file( $buildurl ), true );
-           // $buildnr = ...
-        */
-
-        pake_echo( "Build $buildnr triggered. Starting polling..." );
-        $buildurl = 'job/' . $opts['jenkins']['jobs']['legacy'] . '/' . $buildnr . '/api/json';
-        while ( true )
+        foreach( $out['builds'] as $build )
         {
-            sleep( 5 );
-            $out = self::jenkinsCall( $buildurl, $opts ); // true
-            if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
+            $buildNr = $build['number'];
+            pake_echo( "Found build $buildNr checking its status" );
+            $buildurl = 'job/' . $opts['jenkins']['jobs']['kernel'] . '/' . $buildNr . '/api/json';
+            $out = self::jenkinsCall( $buildurl, $opts );
+            if ( !is_array( $out ) || !array_key_exists( 'result', $out ) )
             {
                 throw new pakeException( "Error in retrieving build status" );
             }
-            else if ( $out['building'] == false )
+            if ( $out['result'] != 'SUCCESS' )
             {
-                break;
+                throw new pakeException( "build was not succesful" );
             }
-            pake_echo( 'Polling...' );
-        }
 
-        if ( is_array( $out ) && @$out['result'] == 'SUCCESS' )
-        {
-            pake_echo( "Build $buildnr succesful" );
-        }
-        else
-        {
-            throw new pakeException( "Build failed or unknown status" );
+            // check if this build happened later than the last commit to the community repo
+            $ts =  round( $out['timestamp'] / 1000 );
+
+            $git = self::getTool( 'git', $opts );
+            $rootpath = self::getSourceDir( $opts, 'community' );
+            $lastCommit = trim( pake_sh( self::getCdCmd( $rootpath ) . " && $git log -1 --format=\"%ct\"" ) );
+
+            if ( $ts < $lastCommit )
+            {
+                throw new pakeException( "build was done before last repo modification. Please run a new build, task: run-jenkins-build5pre" );
+            }
+
+            echo "Build timestamp $ts is later than repo timestamp $lastCommit : all ok\n";
+            break;
         }
     }
 
     /**
-     * Executes the build project on Jenkins (ezp5)
-     * @todo code is duplicate of run_run_jenkins_build4, reunite
+     * Runs build of the 'ezpublish5-community' job on jenkins is fine
+     */
+    public static function run_run_jenkins_build5pre( $task=null, $args=array(), $cliopts=array() )
+    {
+        $opts = self::getOpts( $args, $cliopts );
+
+        self::jenkinsBuild( $opts['jenkins']['jobs']['kernel'], $opts, array( 'VERSION' => '' ) );
+    }
+
+    /**
+     * Executes the build project on Jenkins (ezpublish5-full-community)
      */
     public static function run_run_jenkins_build5( $task=null, $args=array(), $cliopts=array() )
     {
         $opts = self::getOpts( $args, $cliopts );
 
-        /// Use jenkins Remote Access Api
-        /// @see https://wiki.jenkins-ci.org/display/JENKINS/Remote+access+API
-        /// @see https://wiki.jenkins-ci.org/display/JENKINS/Authenticating+scripted+clients
-
-        // trigger build
-        /// @todo Improve this: jenkins gives us an http 302 => html page,
-        ///       so far I have found no way to get back a json-encoded result
-        $out = self::jenkinsCall( 'job/' . $opts['jenkins']['jobs']['community'] . '/buildWithParameters?delay=0sec&VERSION=' . $opts['version']['alias'], $opts );
-        // "scrape" the number of the currently executing build, and hope it is the one we triggered.
-        // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
-        $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
-        if ( !$ok )
-        {
-            // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
-            $ok = preg_match( '/<a href="\/job\/' . $opts['jenkins']['jobs']['community'] . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
-            if ( !$ok )
-            {
-                throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
-            }
-        }
-        $buildnr = $matches[1];
-
-        /*
-           $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['jobs']['community'] . '/api/json';
-           $out = json_decode( pake_read_file( $buildurl ), true );
-           // $buildnr = ...
-        */
-
-        pake_echo( "Build $buildnr triggered. Starting polling..." );
-        $buildurl = 'job/' . $opts['jenkins']['jobs']['community'] . '/' . $buildnr . '/api/json';
-        while ( true )
-        {
-            sleep( 5 );
-            $out = self::jenkinsCall( $buildurl, $opts ); // true
-            if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
-            {
-                throw new pakeException( "Error in retrieving build status" );
-            }
-            else if ( $out['building'] == false )
-            {
-                break;
-            }
-            pake_echo( 'Polling...' );
-        }
-
-        if ( is_array( $out ) && @$out['result'] == 'SUCCESS' )
-        {
-            pake_echo( "Build $buildnr succesful" );
-        }
-        else
-        {
-            throw new pakeException( "Build failed or unknown status" );
-        }
+        self::jenkinsBuild( $opts['jenkins']['jobs']['community'], $opts, array( 'VERSION' => $opts['version']['alias'] ) );
     }
 
     /**
@@ -1567,4 +1521,71 @@ class Tasks extends Builder
     {
     }
 
+
+    protected static function jenkinsBuild( $jobname, $opts, $params=array() )
+    {
+
+        pake_echo( "Triggering build of jenkins job '{$jobname}'" );
+        /// @todo Improve this: jenkins gives us an http 302 => html page,
+        ///       so far I have found no way to get back a json-encoded result
+        if ( count( $params ) )
+        {
+            foreach( $params as $name => $value )
+            {
+                $urlParams[] = $name . '=' . urlencode( $value );
+            }
+            $urlParams = implode( '&', $urlParams );
+            $out = self::jenkinsCall( 'job/' . $jobname . '/buildWithParameters?delay=0sec&' . $urlParams, $opts );
+        }
+        else
+        {
+            $out = self::jenkinsCall( 'job/' . $jobname . '/build?delay=0sec', $opts );
+        }
+
+        // "scrape" the number of the currently executing build, and hope it is the one we triggered.
+        // example: <a href="lastBuild/">Last build (#506), 0.32 sec ago</a></li>
+        $ok = preg_match( '/<a [^>].*href="lastBuild\/">Last build \(#(\d+)\)/', $out, $matches );
+        if ( !$ok )
+        {
+            // example 2: <a href="/job/ezpublish-full-community/671/console"><img height="16" alt="In progress &gt; Console Output" width="16" src="/static/b50e0545/images/16x16/red_anime.gif" tooltip="In progress &gt; Console Output" /></a>
+            $ok = preg_match( '/<a href="\/job\/' . $jobname . '\/(\d+)\/console"><img height="16" alt="In progress &gt; Console Output"/', $out, $matches );
+            if ( !$ok )
+            {
+                throw new pakeException( "Build not started or unknown error. Jenkins page output:\n" . $out );
+            }
+        }
+        $buildnr = $matches[1];
+
+        /*
+           $joburl = $opts['jenkins']['url'] . '/job/' . $opts['jenkins']['jobs']['legacy'] . '/api/json';
+           $out = json_decode( pake_read_file( $buildurl ), true );
+           // $buildnr = ...
+        */
+
+        pake_echo( "Build $buildnr triggered. Starting polling..." );
+        $buildurl = 'job/' . $jobname . '/' . $buildnr . '/api/json';
+        while ( true )
+        {
+            sleep( 5 );
+            $out = self::jenkinsCall( $buildurl, $opts ); // true
+            if ( !is_array( $out ) || !array_key_exists( 'building', $out ) )
+            {
+                throw new pakeException( "Error in retrieving build status" );
+            }
+            else if ( $out['building'] == false )
+            {
+                break;
+            }
+            pake_echo( 'Polling...' );
+        }
+
+        if ( is_array( $out ) && @$out['result'] == 'SUCCESS' )
+        {
+            pake_echo( "Build $buildnr succesful" );
+        }
+        else
+        {
+            throw new pakeException( "Build failed or unknown status" );
+        }
+    }
 } 

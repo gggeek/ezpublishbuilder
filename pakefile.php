@@ -85,7 +85,12 @@ pake_task( 'eZPCPBuilder\Tasks::wait-for-continue' );
 
 pake_task( 'eZPCPBuilder\Tasks::run-jenkins-build4' );
 
-pake_task( 'eZPCPBuilder\Tasks::run-jenkins-build5' );
+pake_task( 'eZPCPBuilder\Tasks::check-jenkins-build5pre' );
+
+pake_task( 'eZPCPBuilder\Tasks::run-jenkins-build5pre' );
+
+pake_task( 'eZPCPBuilder\Tasks::run-jenkins-build5',
+    'check-jenkins-build5pre' );
 
 pake_task( 'eZPCPBuilder\Tasks::tag-github-repos' );
 
