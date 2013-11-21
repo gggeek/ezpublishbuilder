@@ -237,6 +237,26 @@ class Tasks extends Builder
     }
 
     /**
+     * Displays current revision of local eZP sources
+     */
+    public static function run_display_source_revision( $task=null, $args=array(), $cliopts=array() )
+    {
+        $opts = self::getOpts( $args, $cliopts );
+
+        foreach( array( 'legacy', 'community', 'kernel' ) as $repo )
+        {
+            pake_echo( "eZ Publish $repo GIT repository" );
+
+            $rootpath = self::getSourceDir( $opts, $repo );
+
+            $commit = pake_sh( self::getCdCmd( $rootpath ) . " && git log -1 --format=\"%H\"" );
+            $date = pake_sh( self::getCdCmd( $rootpath ) . " && git log -1 --format=\"%ci\"" );
+            pake_echo ( 'Last commit: ' . trim(  $commit ) );
+            pake_echo ( 'Merge date: ' . trim( $date ) . "\n" );
+        }
+    }
+
+    /**
      * Generates a changelog file based on git commit logs; options: --skip-update-source
      *
      * The generated file is placed in the correct folder within doc/changelogs.
@@ -873,6 +893,7 @@ class Tasks extends Builder
 
     /**
      * Pushes to github repositories a tag with the current version name. TO BE TESTED
+     * @todo allow to tag older revisions than HEAD
      */
     public static function run_tag_github_repos( $task=null, $args=array(), $cliopts=array() )
     {

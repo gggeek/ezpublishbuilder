@@ -9,6 +9,8 @@ Changes for version 0.6 - released 2013/11/xx
 . added 2 new tasks: check-jenkins-build5pre and run-jenkins-build5pre.
   These correspond to step 6 (currently) in the instruction manual
 
+. added a utility task: display_source_revision
+
 *Bugfixes:
 
 . Generation of html credits was broken since 0.5.0

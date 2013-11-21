@@ -71,6 +71,8 @@ pake_task( 'eZPCPBuilder\Tasks::build',
 
 pake_task( 'eZPCPBuilder\Tasks::update-source' );
 
+pake_task( 'eZPCPBuilder\Tasks::display-source-revision' );
+
 pake_task( 'eZPCPBuilder\Tasks::generate-changelog',
     'update-source' );
 
