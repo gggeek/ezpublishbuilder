@@ -257,6 +257,25 @@ class Tasks extends Builder
     }
 
     /**
+     * Finds (and displays) info about the previous release: git revision etc
+     */
+    public static function run_display_previous_release( $task=null, $args=array(), $cliopts=array() )
+    {
+        $opts = self::getOpts( $args, $cliopts );
+
+        $changelogEntries = array();
+        foreach( self::getPreviousRevisions( array( 'legacy', 'community', 'kernel' ), $opts )  as $repo => $previousrev )
+        {
+            $rootpath = self::getSourceDir( $opts, $repo );
+
+            $date = pake_sh( self::getCdCmd( $rootpath ) . " && git log -1 --format=\"%ci\" $previousrev" );
+            pake_echo ( "Repository: $repo" );
+            pake_echo ( "Commit: $previousrev" );
+            pake_echo ( 'Merge date: ' . trim( $date ) . "\n" );
+        }
+    }
+
+    /**
      * Generates a changelog file based on git commit logs; options: --skip-update-source
      *
      * The generated file is placed in the correct folder within doc/changelogs.
@@ -267,39 +286,11 @@ class Tasks extends Builder
         $opts = self::getOpts( $args, $cliopts );
 
         $changelogEntries = array();
-        foreach( array( 'legacy', 'community', 'kernel' ) as $repo )
+        foreach( self::getPreviousRevisions( array( 'legacy', 'community', 'kernel' ), $opts ) as $repo => $previousrev )
         {
-
             $rootpath = self::getSourceDir( $opts, $repo );
 
-            if ( isset( $opts['version']['previous'][$repo]['git-revision'] ) )
-            {
-                $previousrev = $opts['version']['previous'][$repo]['git-revision'];
-
-                pake_echo ( "\nGit revision of previous release for repo $repo taken from config file: $previousrev" );
-            }
-            else
-            {
-                $prevname = self::previousVersionName( $opts );
-                //if ( $opts['jenkins']['jobs'][$repo] )
-                //{
-                pake_echo ( "\nGetting git revision of previous release from GIT or Jenkins for repo $repo" );
-
-                $previousrev = self::getPreviousRevision( $prevname, $repo, $opts );
-                if ( $previousrev == "" )
-                {
-                    throw new pakeException( "Previous revision number of $repo not found in Git or Jenkins. Please set it manually in version:previous:$repo:git-revision" );
-                }
-                //}
-                //else
-                //{
-                //    throw new pakeException( "Previous revision number of $repo repo MUST be given in the config file: version:previous:$repo:git-revision" );
-                //}
-
-                pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
-            }
-
-            pake_echo ( "\nExtracting changelog entries from git log" );
+            pake_echo ( "\nExtracting changelog entries from git log for $repo" );
             $changelogEntries[$repo] = self::extractChangelogEntriesFromRepo( $rootpath, $previousrev );
         }
 
@@ -1609,4 +1600,38 @@ class Tasks extends Builder
             throw new pakeException( "Build failed or unknown status" );
         }
     }
-} 
+
+    protected static function getPreviousRevisions( $repos, $opts )
+    {
+        $revisions = array();
+        foreach( $repos as $repo )
+        {
+            $rootpath = self::getSourceDir( $opts, $repo );
+
+            if ( isset( $opts['version']['previous'][$repo]['git-revision'] ) )
+            {
+                $previousrev = $opts['version']['previous'][$repo]['git-revision'];
+
+                pake_echo ( "\nGit revision of previous release for repo $repo taken from config file: $previousrev" );
+            }
+            else
+            {
+                $prevname = self::previousVersionName( $opts );
+
+                pake_echo ( "\nGetting git revision of previous release from GIT or Jenkins for repo $repo" );
+
+                $previousrev = self::getPreviousRevision( $prevname, $repo, $opts );
+                if ( $previousrev == "" )
+                {
+                    throw new pakeException( "Previous revision number of $repo not found in Git or Jenkins. Please set it manually in version:previous:$repo:git-revision" );
+                }
+
+                pake_echo ( "Git revision number of previous release for repo $repo is: $previousrev" );
+            }
+
+            $revisions[$repo] = $previousrev;
+        }
+
+        return $revisions;
+    }
+}

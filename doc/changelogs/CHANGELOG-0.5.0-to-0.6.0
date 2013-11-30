@@ -6,10 +6,12 @@ Changes for version 0.6 - released 2013/11/xx
 
 . More readable output for task "generate-changelog"
 
-. added 2 new tasks: check-jenkins-build5pre and run-jenkins-build5pre.
+. Added 2 new tasks: check-jenkins-build5pre and run-jenkins-build5pre.
   These correspond to step 6 (currently) in the instruction manual
 
-. added a utility task: display_source_revision
+. Added 2 utility tasks: display-source-revision and display-previous-release
+
+. More error reporting if type of issues can not be determined using bugtracker
 
 *Bugfixes:
 

@@ -657,6 +657,12 @@ class Builder
             $opts = self::$options[self::$projname];
         }
 
+        if ( $opts['bugtracker']['url'] == '' )
+        {
+            pake_echo_error( "Can not determine issue type on bugtracker with empty url" );
+            return 'unknown';
+        }
+
         $url = str_replace( '__ISSUE__', $issue, $opts['bugtracker']['url'] );
         $page = file_get_contents( $url );
         switch( $opts['bugtracker']['type'] )
@@ -672,6 +678,10 @@ class Builder
                 if ( isset( $data['fields']['issuetype']['id'] ) && isset( $knowntypes[$data['fields']['issuetype']['id']] ) )
                 {
                     return $knowntypes[$data['fields']['issuetype']['id']];
+                }
+                else
+                {
+                    pake_echo_error( "Can not determine issue type on Jira url '{$url}'" );
                 }
                 break;
             default:
