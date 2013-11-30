@@ -328,6 +328,8 @@ class Tasks extends Builder
 
         pake_echo( "Changes found:\n" . $out );
 
+        // We do not create changelog files yet - until we can analyze with a bit more confidence the data gathered above
+        /*
         $updatedir = self::updateDir( $opts );
         $filename = self::dbupdateFilename( $opts );
         pake_mkdirs( $updatedir );
@@ -338,6 +340,7 @@ class Tasks extends Builder
         }
 
         pake_echo( "\nNow go and edit files " . $updatedir . '/database/<dbtype>/' . $filename );
+        */
     }
 
     /**

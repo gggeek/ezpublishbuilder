@@ -3,9 +3,6 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 
 # global
 
-. fix generation of docs w. phpdoc: remove cache folders after run
-  (see also https://github.com/phpDocumentor/phpDocumentor2/issues/890)
-
 . finish integration with v5:
   - rewrite the shell part of the v5-community task in php
   - let the script create tags for github repos (see below for details)
@@ -40,6 +37,8 @@ https://docs.google.com/a/ez.no/document/d/1UZVIRjovBbzaTeDy3OClNsyxQvd6PDuPzzWb
 . give user chance to break after seeing info about package repo url?
 . allow script to run in --force mode, that avoids waiting for user input
 . update the version number in the sql schema and .dba file
+...
+. rewrite it to be based on git branches instead of patch files in CI repo
 
 # init, init-ci-repo, update-ci-repo, generate-changelog tasks
 
