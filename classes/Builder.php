@@ -397,6 +397,12 @@ class Builder
         return $entries;
     }
 
+    /// Path to dir where update files should reside
+    static function updateDir( $opts )
+    {
+        return self::getSourceDir( $opts, 'legacy' ) . '/update';
+    }
+
     /// Path to dir where changelog file should reside
     static function changelogDir( $opts )
     {
@@ -407,6 +413,12 @@ class Builder
     static function changelogFilename( $opts )
     {
         return 'CHANGELOG-' . self::previousVersionName( $opts ) . '-to-' . $opts['version']['alias'] . '.txt';
+    }
+
+    /// Generate name for changelog file
+    static function dbupdateFilename( $opts )
+    {
+        return 'dbupdate-' . self::previousVersionName( $opts ) . '-to-' . $opts['version']['alias'] . '.sql';
     }
 
     /**
@@ -537,6 +549,59 @@ class Builder
     public static function tagNameFromVersionName( $versionName, $opts )
     {
         return $opts['git']['tag_prefix'] . $versionName . $opts['git']['tag_postfix'];
+    }
+
+    /**
+     * Looks for changes in db structure (.sql or .dba files) or the presence of update scripts in common dirs
+     * @return array
+     *
+     * @todo filter out changes in test files/folders
+     */
+    public static function extractDBChangeEntriesFromRepo( $rootpath, $previousrev )
+    {
+        if ( $previousrev != '' )
+        {
+            /// @todo check if given revision exists in git repo? We'll get an empty changelog if it does not...
+
+            /// @todo replace with pakegit::log
+            $git = escapeshellarg( pake_which( 'git' ) );
+            $grep = self::getTool( 'grep' );
+
+            foreach( array(
+                'sqlfiles' => '\.sql$',
+                'dbafiles' => '\.dba$',
+                'updatescripts' => 'update/common/scripts/',
+                'updatesql' => 'update/common/database/',
+                ) as $token => $pattern )
+            {
+                try
+                {
+                    $changelogArray = preg_split( '/(\r\n|\n\r|\r|\n)/', pake_sh( self::getCdCmd( $rootpath ) . " && $git log --name-only " . escapeshellarg( $previousrev ) . "..HEAD | $grep -i \"$pattern\"" ) );
+                    $changelogArray = array_unique( array_map( 'trim', $changelogArray ) );
+                }
+                catch( \Exception $e )
+                {
+                    //var_dump( $e );
+                    $changelogArray = array();
+                }
+
+                $out[$token] = $changelogArray;
+            }
+
+            return $out;
+
+        }
+        else
+        {
+            pake_echo( 'Can not determine the git tag of last version.' );
+
+            return array(
+                'sqlfiles'      => array(),
+                'dbafiles'      => array(),
+                'updatescripts' => array(),
+                'updatesql'     => array()
+            );
+        }
     }
 
     /**

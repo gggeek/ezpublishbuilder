@@ -67,13 +67,16 @@ pake_task( 'eZPCPBuilder\Tasks::init' );
 pake_task( 'eZPCPBuilder\Tasks::init-ci-repo' );
 
 pake_task( 'eZPCPBuilder\Tasks::build',
-    'init', 'init-ci-repo', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build4', 'run-jenkins-build5' );
+    'init', 'init-ci-repo', 'generate-upgrade-instructions', 'generate-changelog', 'wait-for-changelog', 'update-ci-repo', 'wait-for-continue', 'run-jenkins-build4', 'run-jenkins-build5' );
 
 pake_task( 'eZPCPBuilder\Tasks::update-source' );
 
 pake_task( 'eZPCPBuilder\Tasks::display-source-revision' );
 
 pake_task( 'eZPCPBuilder\Tasks::display-previous-release' );
+
+pake_task( 'eZPCPBuilder\Tasks::generate-upgrade-instructions',
+   'update-source' );
 
 pake_task( 'eZPCPBuilder\Tasks::generate-changelog',
     'update-source' );

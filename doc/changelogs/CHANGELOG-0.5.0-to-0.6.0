@@ -9,6 +9,8 @@ Changes for version 0.6 - released 2013/11/xx
 . Added 2 new tasks: check-jenkins-build5pre and run-jenkins-build5pre.
   These correspond to step 6 (currently) in the instruction manual
 
+. Added a new task: generate-upgrade-instructions. To be used in step 3 (currently) of the publication phase in the instruction manual
+
 . Added 2 utility tasks: "display-source-revision" and "display-previous-release"
 
 . More error reporting if type of issues can not be determined using bugtracker during changelog generation

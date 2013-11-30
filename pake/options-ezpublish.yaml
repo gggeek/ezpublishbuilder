@@ -122,6 +122,7 @@ tools:
     git:
     patch:
     zip:
+    grep:
     composer.phar:
 
 # Source repos (only git usable at the moment - see ezextensionbuilder for other options)

@@ -276,6 +276,71 @@ class Tasks extends Builder
     }
 
     /**
+     * Checks if db upgrades are needed based on git commit logs; options: --skip-update-source
+     *
+     * Empty files are placed in the correct folder within update/database.
+     * The user should edit them by hand, then commit with the task "update-ci-repo".
+     *
+     * @todo diff the changed sql files and echo them to user
+     * @todo allow script to connect to a db and create automatically the diff-sql
+     */
+    public static function run_generate_upgrade_instructions( $task=null, $args=array(), $cliopts=array() )
+    {
+        $opts = self::getOpts( $args, $cliopts );
+
+        $changelogEntries = array();
+        $nochanges = true;
+        foreach( self::getPreviousRevisions( array( 'legacy' /*, 'community', 'kernel'*/ ), $opts ) as $repo => $previousrev )
+        {
+            $rootpath = self::getSourceDir( $opts, $repo );
+
+            pake_echo ( "\nExtracting database changes from git log for $repo" );
+            $changelogEntries[$repo] = self::extractDBChangeEntriesFromRepo( $rootpath, $previousrev );
+            if ( $nochanges )
+            {
+                foreach( $changelogEntries[$repo] as $changes )
+                {
+                    if ( count( $changes ) )
+                    {
+                        $nochanges = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( $nochanges )
+        {
+            pake_echo( "\nNo changes found in database structure or needing an upgrade script" );
+            return;
+        }
+
+        $out = '';
+        foreach( array( 'legacy' /*, 'community', 'kernel'*/ ) as $repo )
+        {
+            $out .= "Repository: $repo\n";
+            foreach( $changelogEntries[$repo] as $type => $changes )
+            {
+                $out .= "Type: $type\n" . implode( "\n", $changes );
+            }
+            $out .= "\n";
+        }
+
+        pake_echo( "Changes found:\n" . $out );
+
+        $updatedir = self::updateDir( $opts );
+        $filename = self::dbupdateFilename( $opts );
+        pake_mkdirs( $updatedir );
+        foreach( array( 'mysql', 'postgresql', 'oracle' ) as $dbtype )
+        {
+            pake_mkdirs( $updatedir . "/database/$dbtype" );
+            pake_write_file( $updatedir . "/database/$dbtype/$filename" , '', true );
+        }
+
+        pake_echo( "\nNow go and edit files " . $updatedir . '/database/<dbtype>/' . $filename );
+    }
+
+    /**
      * Generates a changelog file based on git commit logs; options: --skip-update-source
      *
      * The generated file is placed in the correct folder within doc/changelogs.
@@ -1292,13 +1357,12 @@ class Tasks extends Builder
                 throw new pakeException( "Phpdoc did not generate index.html file in $outdir/phpdoc/html" );
             }
 
-            // clear phpdoc cache, as it is generated in same folder as doc artifacts and there is apparently no otpion
+            // clear phpdoc cache, as it is generated in same folder as doc artifacts and there is apparently no option
             // to have it somewhere else
             foreach( PakeFinder::type( 'dir' )->maxdepth( 1 )->name( 'phpdoc-cache-*' )->in( $outdir . '/html' ) as $dir )
             {
                 pake_remove_dir( $dir );
             }
-
 
             // zip the docs
             pake_echo( "Creating tarballs of docs" );
