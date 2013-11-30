@@ -1291,6 +1291,15 @@ class Tasks extends Builder
             {
                 throw new pakeException( "Phpdoc did not generate index.html file in $outdir/phpdoc/html" );
             }
+
+            // clear phpdoc cache, as it is generated in same folder as doc artifacts and there is apparently no otpion
+            // to have it somewhere else
+            foreach( PakeFinder::type( 'dir' )->maxdepth( 1 )->name( 'phpdoc-cache-*' )->in( $outdir . '/html' ) as $dir )
+            {
+                pake_remove_dir( $dir );
+            }
+
+
             // zip the docs
             pake_echo( "Creating tarballs of docs" );
             $filename = self::getProjFileName() . '-apidocs-phpdoc-' . $stack;
